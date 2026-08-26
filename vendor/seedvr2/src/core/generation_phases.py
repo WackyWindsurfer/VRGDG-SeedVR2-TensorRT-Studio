@@ -550,6 +550,16 @@ def encode_all_batches(
         debug.log(f"Error in Phase 1 (Encoding): {e}", level="ERROR", category="error", force=True)
         raise
     finally:
+        # The TensorRT encoder context owns a large GPU workspace. It must be
+        # released before materializing the DiT or high-resolution 7B jobs can
+        # fall into WDDM paging and become hundreds of times slower.
+        if os.environ.get("SEEDVR2_TRT_ENCODER", "0") == "1":
+            try:
+                from .trt_encoder import release as release_trt_encoder
+                release_trt_encoder()
+                debug.log("Released TensorRT VAE encoder resources before Phase 2", category="memory", force=True)
+            except Exception as release_error:
+                debug.log(f"Could not release TensorRT VAE encoder resources: {release_error}", level="WARNING", category="memory", force=True)
         # Offload VAE to configured offload device if specified
         if ctx['vae_offload_device'] is not None:
             manage_model_device(model=runner.vae, target_device=ctx['vae_offload_device'], 

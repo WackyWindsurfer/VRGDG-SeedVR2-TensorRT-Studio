@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import gc
 from pathlib import Path
 from threading import Lock
 
@@ -106,3 +107,13 @@ def encode(sample: torch.Tensor) -> torch.Tensor:
                 result[:, :, :, ly:ly + 64, lx:lx + 64] += tile_output.float() * window
                 weights[:, :, :, ly:ly + 64, lx:lx + 64] += window
     return (result / weights.clamp_min(1e-6))[:, :16, :, :latent_h, :latent_w].to(sample.dtype)
+
+def release() -> None:
+    """Release encoder contexts before the much larger DiT phase is loaded."""
+    with _ENCODE_LOCK:
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+        _ENGINES.clear()
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()

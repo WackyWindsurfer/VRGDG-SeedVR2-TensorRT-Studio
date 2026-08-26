@@ -104,15 +104,33 @@ def _bool(value: str | bool) -> bool:
     return value is True or str(value).lower() in {"1", "true", "yes", "on"}
 
 
+CHUNK_LENGTH_OPTIONS = (30, 60, 120, 180, 300, 600, 900, 1800)
+
+
+def _automatic_chunk_seconds(info, batch_size: int) -> int:
+    """Choose about ten checkpoints using frame count and temporal-batch alignment."""
+    fps = max(float(info.fps), 1.0)
+    total_frames = max(1, round(float(info.duration) * fps))
+    temporal_batch = max(1, int(batch_size))
+    target_frames = max(temporal_batch, round(total_frames / 10 / temporal_batch) * temporal_batch)
+    desired_seconds = target_frames / fps
+    return min(CHUNK_LENGTH_OPTIONS, key=lambda seconds: abs(seconds - desired_seconds))
+
+
 def _render_chunked(job_id: str, source: Path, job_dir: Path, output: Path, settings, info, values: dict[str, object], report) -> None:
     """Render long videos in checkpointed temporal chunks, resuming completed work."""
     if settings.stop_before_vae:
         raise RuntimeError("Chunked rendering is unavailable when Stop before VAE is enabled.")
-    chunk_seconds = max(5.0, float(values.get("chunk_seconds", 60)))
+    requested_chunk_seconds = float(values.get("chunk_seconds", 0))
+    auto_chunking = requested_chunk_seconds <= 0
+    chunk_seconds = float(_automatic_chunk_seconds(info, settings.batch_size) if auto_chunking else max(5.0, requested_chunk_seconds))
+    if auto_chunking:
+        frames_per_chunk = round(chunk_seconds * max(float(info.fps), 1.0))
+        report(0.001, f"Auto chunk length selected: {chunk_seconds / 60:g} minutes ({frames_per_chunk} frames per chunk)")
     overlap_frames = max(0, min(20, int(settings.batch_size) - 1))
     overlap_seconds = overlap_frames / max(info.fps, 1.0)
     checkpoint_path = job_dir / "chunk-manifest.json"
-    manifest: dict[str, object] = {"chunk_seconds": chunk_seconds, "overlap_frames": overlap_frames, "duration": info.duration, "completed": [], "chunks": []}
+    manifest: dict[str, object] = {"chunk_seconds": chunk_seconds, "chunk_mode": "auto" if auto_chunking else "manual", "source_frames": round(info.duration * info.fps), "overlap_frames": overlap_frames, "duration": info.duration, "completed": [], "chunks": []}
     if checkpoint_path.exists():
         try:
             existing = json.loads(checkpoint_path.read_text(encoding="utf-8"))
@@ -261,7 +279,7 @@ async def create_job(
     skin_finishing_enabled: str = Form("false"), skin_evenness: float = Form(.25), skin_smoothing: float = Form(.20),
     skin_redness: float = Form(.15), skin_shine: float = Form(.15), blemish_mode: str = Form("off"), preserve_marks: str = Form("true"),
     seam_mode: str = Form("match"), seam_frames: int = Form(2),
-    chunked_render: str = Form("false"), chunk_seconds: float = Form(60),
+    chunked_render: str = Form("false"), chunk_seconds: float = Form(0),
 ) -> dict[str, str]:
     ensure_workspace()
     job_id = uuid4().hex[:10]
@@ -272,7 +290,7 @@ async def create_job(
     with source.open("wb") as handle:
         shutil.copyfileobj(file.file, handle)
     values = locals().copy()
-    values.update({"model_label": model_label, "vae_tiling": _bool(vae_tiling), "stop_before_vae": _bool(stop_before_vae), "sharpen_enabled": _bool(sharpen_enabled), "grain_enabled": _bool(grain_enabled), "microtexture_enabled": _bool(microtexture_enabled), "skin_finishing_enabled": _bool(skin_finishing_enabled), "preserve_marks": _bool(preserve_marks), "chunked_render": _bool(chunked_render), "chunk_seconds": max(5.0, float(chunk_seconds))})
+    values.update({"model_label": model_label, "vae_tiling": _bool(vae_tiling), "stop_before_vae": _bool(stop_before_vae), "sharpen_enabled": _bool(sharpen_enabled), "grain_enabled": _bool(grain_enabled), "microtexture_enabled": _bool(microtexture_enabled), "skin_finishing_enabled": _bool(skin_finishing_enabled), "preserve_marks": _bool(preserve_marks), "chunked_render": _bool(chunked_render), "chunk_seconds": float(chunk_seconds) if float(chunk_seconds) > 0 else 0.0})
     with JOBS_LOCK:
         JOBS[job_id] = {"id": job_id, "status": "queued", "progress": 0.0, "message": "Queued", "job_type": job_type, "resumable": _bool(chunked_render) and job_type == "full", "_source": str(source), "_job_dir": str(job_dir), "_values": values}
     Thread(target=_render_job, args=(job_id, source, job_dir, values), daemon=True).start()
@@ -395,6 +413,7 @@ def media(relative_path: str) -> FileResponse:
 
 
 app.mount("/", StaticFiles(directory=WEB, html=True), name="web")
+
 
 
 

@@ -9,7 +9,7 @@ A local video restoration studio for SeedVR2 with a custom JavaScript interface,
 - Preview renders and full-video renders with elapsed time and ETA.
 - Output presets for original-size enhancement, 1K/1080p, 2K/1440p, and 4K/2160p.
 - Preserve the original aspect ratio or center-crop to 16:9.
-- Resumable long-video rendering with checkpointed chunks, retry from the last completed chunk, failure reasons, and saved logs.
+- Resumable long-video rendering with automatic frame-aware chunk sizing, manual 30-second to 30-minute choices, retry from the last completed chunk, failure reasons, and saved logs.
 - Post-only reprocessing for sharpening, film grain, TensorRT seam smoothing, and optional skin finishing.
 - Saved settings, previous-output loading, and an Open project folder action.
 
@@ -78,3 +78,4 @@ Each job is stored in its own directory under `outputs\`, including output media
 ## License
 
 The Studio source is released under the MIT License. SeedVR2 and optional runtime components retain their respective upstream licenses.
+

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SeedVR Studio · Beta</title>
+  <link rel="stylesheet" href="/styles.css?v=20260825-5">
+</head>
+<body>
+  <header class="appbar">
+    <div class="brand"><span class="brand-mark">S</span><span>SeedVR <em>Studio</em></span><small>Beta</small></div>
+    <div class="connection"><span class="status-dot" id="api-dot"></span><span id="api-status">Connecting…</span></div>
+  </header>
+  <main class="workspace">
+    <aside class="control-rail">
+      <section class="rail-card source-card">
+        <div class="section-kicker">MEDIA</div>
+        <label class="dropzone" for="source-file"><span class="drop-icon">↑</span><strong>Original video</strong><span>Drop a file or browse</span></label>
+        <input id="source-file" type="file" accept="video/*" hidden>
+        <div class="file-name" id="source-name">No original loaded</div>
+        <div class="media-note">The restored video is created automatically by SeedVR2 after rendering.</div>
+      </section>
+      <section class="rail-card">
+        <div class="section-kicker">PREVIOUS RESULTS</div>
+        <select id="output-select"><option value="">Loading outputs…</option></select>
+        <button class="secondary-button" id="load-output">Load selected output</button>
+      </section>
+      <section class="rail-card settings-card">
+        <div class="section-kicker">RENDER ENGINE</div>
+        <select id="backend"><option>TensorRT VAE (experimental)</option><option>SeedVR2 AI</option></select>
+        <div class="field-label">Hardware preset</div><select id="preset"><option>Custom / manual</option></select>
+        <div class="field-label">Output size</div><select id="output-preset"><option>Original enhancement only</option><option selected>1K / 1080p</option><option>2K / 1440p</option><option>4K / 2160p</option></select>
+        <div class="field-label">Crop / aspect policy</div><select id="crop-policy"><option>Preserve original aspect ratio</option><option>Center crop to 16:9</option></select>
+        <label class="check chunk-toggle"><input id="chunked-render" type="checkbox"> Resumable long-video render <button class="help-button" id="chunk-help" type="button" title="How resumable rendering works">?</button></label>
+        <label id="chunk-length-wrap" class="field-label" hidden>Chunk length<select id="chunk-seconds"><option value="30">30 seconds</option><option value="60" selected>1 minute</option><option value="300">5 minutes</option><option value="600">10 minutes</option></select></label>
+        <div class="field-label">Model</div><select id="model"><option>3B FP16 — best 3B quality</option></select>
+        <div class="field-grid"><label>Temporal batch<select id="batch-size"><option>1</option><option>5</option><option>9</option><option>13</option><option>17</option><option selected>21</option><option>33</option><option>45</option></select></label><label>Seed<input id="seed" type="number" value="42"></label></div>
+        <div class="field-label">Color correction</div><select id="color"><option>lab</option><option>wavelet</option><option>wavelet_adaptive</option><option>hsv</option><option>adain</option><option selected>none</option></select>
+        <details><summary>Performance</summary><div class="field-label">Attention</div><select id="attention" autocomplete="off"><option selected>sageattn_2</option><option>sageattn_3</option><option>flash_attn_3</option><option>flash_attn_2</option><option>sdpa</option></select><p class="media-note">SageAttention 2 is preferred. Missing accelerated backends automatically fall through to another installed option, then SDPA.</p><label class="range-label">Blocks to swap <output id="blocks-value">0</output><input id="blocks" type="range" min="0" max="36" value="0"></label><label class="check"><input id="vae-tiling" type="checkbox"> VAE tiling</label></details>
+        <details><summary>Post-processing</summary><label class="check"><input id="sharpen" type="checkbox"> Extra sharpen</label><label class="range-label">Sharpen amount <output id="sharpen-strength-value">0.25</output><input id="sharpen-strength" type="range" min="0" max="10" step=".01" value=".25"></label><label class="check"><input id="grain" type="checkbox"> Film grain</label><label class="range-label">Grain intensity <output id="grain-intensity-value">0.020</output><input id="grain-intensity" type="range" min="0" max=".1" step=".001" value=".02"></label><label class="range-label">Grain saturation <output id="grain-saturation-value">0.50</output><input id="grain-saturation" type="range" min="0" max="1" step=".01" value=".5"></label><label class="check seam-toggle"><input id="seam-enabled" type="checkbox" checked disabled> Smooth TensorRT batch seams</label><p class="media-note">Uses the proven Color + noise match treatment over 2 frames at every decoded batch boundary.</p><p class="seam-warning" id="seam-warning" hidden>Warning: disabling seam smoothing can cause visible noise, color, or texture changes every temporal batch—for example, every 21 frames.</p></details>
+        <details id="skin-finishing-panel"><summary>Skin finishing</summary><p class="feature-warning" id="skin-backend-warning" hidden>Restart SeedVR Studio to enable skin finishing. Refreshing the page alone cannot update the Python processing backend.</p><label class="check skin-master"><input id="skin-finishing" type="checkbox"> Enable skin finishing</label><div id="skin-options"><label class="range-label">Even skin tone <output id="skin-evenness-value">0.25</output><input id="skin-evenness" type="range" min="0" max="1" step=".05" value=".25"></label><label class="range-label">Skin smoothing <output id="skin-smoothing-value">0.20</output><input id="skin-smoothing" type="range" min="0" max="1" step=".05" value=".2"></label><label class="range-label">Redness reduction <output id="skin-redness-value">0.15</output><input id="skin-redness" type="range" min="0" max="1" step=".05" value=".15"></label><label class="range-label">Shine reduction <output id="skin-shine-value">0.15</output><input id="skin-shine" type="range" min="0" max="1" step=".05" value=".15"></label><div class="field-label">Blemish cleanup</div><select id="blemish-mode"><option value="off" selected>Off</option><option value="subtle">Subtle</option><option value="strong">Strong</option></select><label class="check"><input id="preserve-marks" type="checkbox" checked> Preserve freckles and moles</label><label class="check"><input id="microtexture" type="checkbox"> Face-aware microtexture</label><label class="range-label">Microtexture strength <output id="microtexture-strength-value">0.60</output><input id="microtexture-strength" type="range" min="0" max="3" step=".05" value=".6"></label></div><p class="media-note">Off by default. Uses a stabilized skin mask and protects strong facial contours. Blemish cleanup can still affect permanent marks; preview first.</p></details>
+        <div class="settings-save"><button class="secondary-button" id="save-settings" type="button">Save current settings</button><span id="settings-save-status">Not saved yet</span></div>
+      </section>
+    </aside>
+    <section class="viewer-column">
+      <div class="viewer-header"><div><span class="eyebrow">SEEDVR STUDIO</span><h1>Video restoration workspace</h1></div><div class="header-actions"><div class="render-meta"><span id="render-status">Ready</span><span>Elapsed <strong id="elapsed-time">00:00</strong></span><span>ETA <strong id="eta-time">—</strong></span></div><button class="icon-button" id="exit-studio" title="Exit Studio and release GPU/RAM">⏻</button><button class="icon-button" id="fullscreen" title="Fullscreen">⛶</button></div></div>
+      <section class="inspector" id="inspector" tabindex="0">
+        <div class="modebar">
+          <button class="mode-button" data-mode="original">Original</button>
+          <button class="mode-button" data-mode="restored">Restored</button>
+          <button class="mode-button active" data-mode="compare">◐ Compare</button>
+          <button class="mode-button" data-mode="side">▥ Side by side</button>
+          <span class="mode-spacer"></span><button class="zoom-button" id="zoom-reset">100%</button>
+        </div>
+        <div class="stage" id="stage">
+          <div class="media-surface" id="media-surface">
+            <div class="pane before-pane"><video id="before" playsinline preload="metadata"></video><span>Original</span></div>
+            <div class="pane after-pane"><video id="after" playsinline preload="metadata" muted></video><span>Restored</span></div>
+            <div class="divider" id="divider"><b>↔</b></div>
+          </div>
+          <div class="empty-state" id="empty-state"><strong id="empty-title">Waiting for original video</strong><span id="empty-subtitle">Upload an original video to begin.</span></div>
+          <div class="zoom-hint">Wheel to zoom · drag to pan · double-click to reset</div>
+        </div>
+        <div class="timeline"><input id="seek" type="range" min="0" max="0" step="0.001" value="0"><span id="clock">00:00.000 / 00:00.000</span></div>
+        <div class="transport"><label>Frame <input id="frame" type="number" min="0" value="0"><span id="frame-total">/ 0</span></label><div class="transport-buttons"><button id="prev" title="Previous frame">|◀</button><button id="play" class="play-button" title="Play both">▶</button><button id="next" title="Next frame">▶|</button></div><label class="wipe-control">Wipe <input id="wipe" type="range" min="0" max="100" value="50"><span id="wipe-value">50%</span></label></div>
+      </section>
+      <section class="render-bar"><div class="preview-fields"><label>Preview start<input id="preview-start" type="number" min="0" step=".1" value="3"> sec</label><label>Length<input id="preview-seconds" type="number" min="1" max="10" step=".5" value="3"> sec</label></div><div class="render-actions"><button id="reprocess-post" class="secondary-button" hidden>Reprocess post only</button><button id="render-preview" class="secondary-button">Render preview</button><button id="render-full" class="primary-button">Render full video</button><button id="resume-render" class="secondary-button" hidden>Retry from last chunk</button><button id="stop-render" class="danger-button" hidden>Stop</button></div></section>
+      <div class="viewer-footer"><span id="media-info">No media loaded</span><button id="open-output-folder" class="footer-open-button" type="button" hidden>Open project folder</button></div>
+    </section>
+  </main>
+  <dialog id="chunk-help-dialog"><form method="dialog"><button class="dialog-close" aria-label="Close">×</button><h2>Resumable long-video rendering</h2><p>When enabled, the full video is divided into manageable chunks and processed one at a time. Completed chunks are saved immediately, with a small temporal overlap to reduce boundary seams.</p><p>If a render fails, the completed chunks remain on disk. The failure reason and backend log are saved, and <strong>Retry from last chunk</strong> continues from the first unfinished chunk automatically.</p><p>This is off by default. It does not change the normal render quality or require any manual chunk assembly.</p><button class="primary-button" value="close">Got it</button></form></dialog>
+  <script type="module" src="/app.js?v=20260825-21"></script>
+</body>
+</html>

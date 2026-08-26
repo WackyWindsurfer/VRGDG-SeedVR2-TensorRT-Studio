@@ -1,0 +1,12 @@
+[project]
+name = "seedvr-studio"
+version = "0.1.0"
+description = "Local SeedVR2 video restoration studio with preview and comparison tools"
+requires-python = ">=3.12"
+dependencies = [
+  "gradio>=5.49,<7",
+  "fastapi>=0.115",
+  "uvicorn>=0.32",
+  "pillow>=10.4",
+  "pip-system-certs>=5.3",
+]

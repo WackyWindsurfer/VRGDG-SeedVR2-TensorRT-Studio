@@ -1,0 +1,6 @@
+# Optional TensorRT backend toolchain; the main Studio environment does not
+# require these packages.
+tensorrt-rtx==1.6.1.120
+onnx==1.22.0
+onnxscript==0.7.1
+polygraphy==0.53.4

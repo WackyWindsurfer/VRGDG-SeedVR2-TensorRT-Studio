@@ -1,0 +1,13 @@
+.venv/
+outputs/
+models/
+vendor/seedvr2/
+__pycache__/
+*.pyc
+*.log
+tensorrt_backend/engines/
+tensorrt_backend/cache/
+tensorrt_backend/artifacts/
+tensorrt_backend/build/
+*.rtxplan
+*.engine

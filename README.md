@@ -1,74 +1,105 @@
-# SeedVR Studio
+# VRGDG SeedVR2 TensorRT Studio
 
-A local, Topaz-style workspace for the Apache-licensed SeedVR2 restoration models. It provides:
+A local, professional-style video restoration workspace for SeedVR2. The primary interface is a custom JavaScript UI backed by a local FastAPI service, with TensorRT VAE acceleration available for fast previews and full renders.
 
-- Video import and metadata inspection.
-- Quick 5- or 9-frame samples and configurable timed preview renders.
-- Original/restored comparison slider.
-- Synchronized side-by-side preview players.
-- Full video renders and downloadable output.
-- SeedVR2 3B/7B, FP16/FP8 model selection.
-- A fast non-AI demo backend for testing the interface.
+## What it does
 
-This project does not use or extract Topaz model files.
+- Import an original video and inspect its metadata.
+- Render short previews or the complete restored video.
+- View Original, Restored, Compare, and synchronized Side by side modes.
+- Use one shared play button, frame stepping, timeline scrubbing, fullscreen, zoom, and pan.
+- Compare frames with an adjustable wipe slider.
+- Choose output presets: enhancement-only at the original size, 1K/1080p, 2K/1440p, or 4K/2160p.
+- Preserve the source aspect ratio or center-crop to 16:9.
+- Use resumable long-video rendering. Completed chunks are retained so a failed job can retry from the last unfinished chunk.
+- Apply post-processing such as sharpening, film grain, TensorRT batch-seam smoothing, and optional skin finishing.
+- Reprocess post effects on an existing render without running SeedVR2 again.
+- Save and restore preferred settings between sessions.
+- Load previous workspace outputs and open their project folders.
 
-## Start the app
+The project does not include or extract Topaz model files.
+
+## Start the Studio
+
+### One-click launcher
+
+Double-click **Launch SeedVR Studio Pro.bat**. It starts the local API, waits for it to become ready, and opens the Studio in your browser at:
+
+`http://127.0.0.1:7870`
+
+The other launchers are available for direct JS or legacy Gradio startup:
+
+- **Launch SeedVR Studio JS.bat** — starts the JavaScript Studio directly.
+- **Launch SeedVR Studio.bat** — starts the legacy Gradio interface.
+
+### PowerShell
 
 ```powershell
 cd A:\seedvr2
-.\scripts\run.ps1
+.\scripts\run_js.ps1
 ```
 
-The browser opens at `http://127.0.0.1:7860`.
+Use `-NoBrowser` when starting the API from an existing browser session.
 
-### New JavaScript viewer (parallel preview)
-
-The new reference-style inspection UI runs alongside Gradio and does not replace the existing renderer yet:
+## First-time setup
 
 ```powershell
-& ".\Launch SeedVR Studio JS.bat"
-```
-
-For the normal one-click experience, double-click [Launch SeedVR Studio Pro.bat](<A:/seedvr2/Launch SeedVR Studio Pro.bat>). It starts the JS API in the background, waits for a healthy server, and opens the viewer automatically. If it is already running, it simply opens the existing session.
-
-It opens at `http://127.0.0.1:7870` and provides the custom video viewer, local media loading, workspace output discovery, engine/model settings, preview/full render jobs, progress polling, cancellation, compare/side-by-side modes, frame stepping, fullscreen, zoom, and pan. The Gradio launcher remains available as a fallback during this migration.
-
-The RTX 5090 CUDA runtime and recommended **3B FP16** model are already installed. The downloaded model files are stored in `models\SEEDVR2`.
-
-## Preview workflow
-
-1. Import a video.
-2. Select a start time and either a quick 5/9-frame sample or a timed preview length.
-3. Click **Render preview**.
-4. Inspect the comparison slider and side-by-side players.
-5. Adjust model/settings and repeat.
-6. Click **Render full video** when satisfied.
-
-Outputs are retained in the `outputs` directory, separated by render job.
-
-## RTX 5090 starting settings
-
-- Model: **3B FP16**
-- Attention: **SDPA**
-- Batch size: **21** initially; try 33 or 45 for longer shots
-- Block swapping: **0**
-- VAE tiling: **off**
-- Color correction: **LAB**
-
-Increase the temporal batch toward the shot length for better consistency and throughput. Enable VAE tiling only after an out-of-memory error. Optional SageAttention 3 or compiled kernels can be explored later for additional speed.
-
-## Reinstall or repair
-
-```powershell
+cd A:\seedvr2
 .\scripts\setup_app.ps1
 .\scripts\setup_seedvr2.ps1
 ```
 
-The setup uses the Windows certificate store inside the project environment because this machine's default Python CA bundle cannot validate several package hosts.
+The setup creates `.venv`, installs the Python dependencies, and downloads the SeedVR2 source dependencies. Model weights are kept in `models\` and are downloaded/validated separately; they are not committed to GitHub.
 
-## Notes
+## Typical workflow
 
-- Batch sizes must follow `4n+1`: 1, 5, 9, 13, 17, 21, and so on.
-- Short preview clips provide less temporal context than a full render.
-- The first run is slower because model files are validated and loaded.
-- `sageattn_3` requires its optional Blackwell-specific package; `sdpa` is the safe installed default.
+1. Start **Launch SeedVR Studio Pro.bat**.
+2. Drop an original video into the Media panel.
+3. Select the backend, output size, crop policy, model, batch size, and other settings.
+4. Render a short preview and inspect it in the viewer.
+5. Adjust settings and render another preview until the result is satisfactory.
+6. Render the full video.
+7. Use **Reprocess post only** when you want to change post-processing without repeating the AI restoration.
+
+The restored output and logs are stored in a separate directory under `outputs\` for each job.
+
+## Main settings
+
+- **Backend:** TensorRT VAE is the fast experimental path; SeedVR2 AI is the standard path.
+- **Output size:** Original enhancement only, 1K/1080p, 2K/1440p, or 4K/2160p.
+- **Crop/aspect:** Preserve the original aspect ratio or center-crop to 16:9.
+- **Temporal batch:** Values follow SeedVR2's `4n+1` pattern, such as 1, 5, 9, 13, 17, 21, 33, and 45. Larger batches may improve consistency but use more VRAM.
+- **Color correction:** `none` leaves colors unchanged. `lab` is the general-purpose matching option; the wavelet modes are useful when preserving local detail or controlling saturation is more important.
+- **Attention:** SageAttention 2 is preferred when installed. The backend automatically falls through to another available accelerated option and finally SDPA.
+- **VAE tiling:** Leave off unless VRAM is insufficient; it reduces memory use at the cost of speed.
+- **Resumable long-video render:** Off by default. When enabled, long videos are processed in chunks and can resume after a failure. The UI reports the failure reason and keeps the backend log for debugging.
+
+## Post-processing
+
+Post-processing runs after restoration and can be repeated without rerunning SeedVR2:
+
+- Extra sharpening, up to strength 10.
+- Film grain with adjustable intensity and saturation.
+- TensorRT batch-seam smoothing, enabled by default.
+- Optional skin finishing for even tone, smoothing, redness/shine reduction, blemish cleanup, mark preservation, and skin-aware microtexture.
+
+Skin finishing is an enhancement of existing pixels; it is not a generative face-restoration model and cannot recreate missing identity detail.
+
+## Project layout
+
+- `web/` — JavaScript Studio interface.
+- `api_server.py` — FastAPI service used by the JS UI.
+- `seedvr_studio/` — rendering, media, jobs, and legacy Gradio integration.
+- `tools/` — TensorRT, assembly, post-processing, and diagnostic utilities.
+- `tensorrt_backend/` — optional native TensorRT integration sources.
+- `scripts/` — setup and launcher scripts.
+
+Large local assets are intentionally ignored by Git: model weights, outputs, virtual environments, TensorRT engines/caches, and the optional `third_party\` runtime directory.
+
+## Hardware notes
+
+The Studio is designed for local NVIDIA CUDA systems. Start with the 3B FP16 model, temporal batch 21, zero block swapping, and VAE tiling disabled. If a job runs out of VRAM, lower the temporal batch or enable VAE tiling. Longer videos do not inherently require loading the whole video into VRAM, but they take longer and are more likely to benefit from resumable chunking.
+
+## License
+
+The Studio source is released under the MIT License. SeedVR2 and optional runtime components retain their respective upstream licenses.

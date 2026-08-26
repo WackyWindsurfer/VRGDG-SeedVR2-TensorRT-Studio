@@ -65,7 +65,7 @@ The restored output and logs are stored in a separate directory under `outputs\`
 
 ## Main settings
 
-- **Backend:** TensorRT VAE is the fast experimental path; SeedVR2 AI is the standard path.
+- **Backend:** SeedVR2 + TensorRT is the recommended fast path; SeedVR2 (Legacy) is the standard PyTorch path and can be substantially slower.
 - **Output size:** Original enhancement only, 1K/1080p, 2K/1440p, or 4K/2160p.
 - **Crop/aspect:** Preserve the original aspect ratio or center-crop to 16:9.
 - **Temporal batch:** Values follow SeedVR2's `4n+1` pattern, such as 1, 5, 9, 13, 17, 21, 33, and 45. Larger batches may improve consistency but use more VRAM.

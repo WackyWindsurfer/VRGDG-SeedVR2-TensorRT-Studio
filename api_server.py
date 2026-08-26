@@ -64,7 +64,7 @@ def config() -> dict[str, object]:
         },
         "seam_modes": {"off": "Off / original output", "noise": "Noise match — gentle", "match": "Color + noise match", "blend": "Boundary dissolve — strongest"},
         "features": {"skin_finishing": True, "open_output_folder": True, "saved_settings": True, "persistent_decoder": True},
-        "decoder_modes": {"stable": "Stable", "optimized": "Optimized (Beta)"},
+        "decoder_modes": {"stable": "Stable", "optimized": "Optimized (Beta)", "optimized_fast": "Optimized Fast (Beta)"},
         "backend": {"seedvr": {"ready": installed, "message": engine}, "tensorrt": {"ready": trt_installed, "message": trt}},
         "presets": {
             "Custom / manual": None,

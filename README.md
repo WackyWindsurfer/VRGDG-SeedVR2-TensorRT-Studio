@@ -11,7 +11,7 @@ A local video restoration and upscale studio for SeedVR2 with TensorRT accelerat
 - Preserve the original aspect ratio or center-crop to 16:9.
 - Resumable long-video rendering with automatic frame-aware chunk sizing, manual 30-second to 30-minute choices, retry from the last completed chunk, failure reasons, and saved logs.
 - Post-only reprocessing for sharpening, film grain, TensorRT seam smoothing, and optional skin finishing.
-- Stable and Optimized (Beta) TensorRT decoder modes. Optimized reuses one engine/context across batches and automatically falls back to Stable from saved latents without rerunning AI restoration.
+- Stable and Optimized (Beta) TensorRT decoder modes. Optimized keeps one engine loaded while isolating each temporal batch in a fresh execution context, and automatically falls back to Stable from saved latents without rerunning AI restoration.
 - Saved settings, previous-output loading, and an Open project folder action.
 
 ## Install and start

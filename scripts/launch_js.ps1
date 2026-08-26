@@ -4,6 +4,7 @@ $ErrorActionPreference = 'Stop'
 $StudioRoot = Split-Path -Parent $PSScriptRoot
 $StudioPython = Join-Path $StudioRoot '.venv\Scripts\python.exe'
 $StudioUrl = 'http://127.0.0.1:7870/'
+$BrowserUrl = $StudioUrl + '?ui=20260826-27'
 $HealthUrl = $StudioUrl + 'api/health'
 $ShutdownUrl = $StudioUrl + 'api/shutdown'
 $LogOut = Join-Path $StudioRoot 'outputs\js_server.log'
@@ -122,14 +123,14 @@ try {
     if ($NoBrowser) { exit 0 }
     $browserPath = Find-AppBrowser
     if (-not $browserPath) {
-        Start-Process $StudioUrl
+        Start-Process $BrowserUrl
         Write-Warning 'A dedicated Edge/Chrome app window was unavailable. Use the Exit Studio button to release GPU and RAM.'
         $KeepServerAfterLauncher = $true
         exit 0
     }
     New-Item -ItemType Directory -Force -Path $BrowserProfile | Out-Null
     $browser = Start-Process -FilePath $browserPath -PassThru -ArgumentList @(
-        "--app=$StudioUrl",
+        "--app=$BrowserUrl",
         "--user-data-dir=$BrowserProfile",
         '--no-first-run',
         '--disable-background-mode'

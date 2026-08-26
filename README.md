@@ -11,6 +11,7 @@ A local video restoration and upscale studio for SeedVR2 with TensorRT accelerat
 - Preserve the original aspect ratio or center-crop to 16:9.
 - Resumable long-video rendering with automatic frame-aware chunk sizing, manual 30-second to 30-minute choices, retry from the last completed chunk, failure reasons, and saved logs.
 - Post-only reprocessing for sharpening, film grain, TensorRT seam smoothing, and optional skin finishing.
+- Stable and Optimized (Beta) TensorRT decoder modes. Optimized reuses one engine/context across batches and automatically falls back to Stable from saved latents without rerunning AI restoration.
 - Saved settings, previous-output loading, and an Open project folder action.
 
 ## Install and start
@@ -48,6 +49,7 @@ Each job is stored in its own directory under `outputs\`, including output media
 - Color correction is part of the main SeedVR2 render. `none` leaves colors unchanged; `lab` is the general-purpose matching mode.
 - SageAttention 2 is installed and preferred by default. Missing accelerated attention backends fall through to another available option and finally SDPA. See the [SageAttention guide](docs/SAGEATTENTION.md) for verification and repair steps.
 - Leave VAE tiling off unless VRAM is insufficient; it saves memory but reduces speed.
+- The TensorRT decoder defaults to **Stable**. Select **Optimized (Beta)** under Performance to test persistent decoding; every job records the requested and actual decoder in its manifests and log.
 - Skin finishing is a non-generative post effect that enhances existing skin pixels; it cannot recreate missing facial identity detail.
 
 ## Project layout

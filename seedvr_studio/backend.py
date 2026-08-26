@@ -14,6 +14,7 @@ from .paths import MODELS, ROOT, SEEDVR_CLI, VENV_PYTHON
 
 
 TRT_RUNNER = ROOT / "tools" / "run_tensorrt_tiled.py"
+TRT_PERSISTENT_RUNNER = ROOT / "tools" / "run_tensorrt_persistent.py"
 TRT_ASSEMBLER = ROOT / "tools" / "assemble_tensor_video.py"
 TRT_ARTIFACTS = ROOT / "tensorrt_backend" / "artifacts"
 TRT_ENGINE_21F = TRT_ARTIFACTS / "vae_decoder_tile_256_21f.rtxplan"
@@ -59,6 +60,7 @@ class RenderSettings:
     preserve_marks: bool = True
     seam_mode: str = "match"
     seam_frames: int = 2
+    decoder_mode: str = "stable"
 
 
 ProgressCallback = Callable[[float, str], None]
@@ -89,10 +91,10 @@ def backend_status() -> tuple[bool, str]:
 
 
 def tensorrt_status() -> tuple[bool, str]:
-    missing = [str(p) for p in (TRT_RUNNER, TRT_ASSEMBLER, TRT_POSTPROCESS, TRT_ENGINE_21F, TRT_ENGINE_5F, TRT_ENCODER_5F, TRT_ENCODER_21F) if not p.exists()]
+    missing = [str(p) for p in (TRT_RUNNER, TRT_PERSISTENT_RUNNER, TRT_ASSEMBLER, TRT_POSTPROCESS, TRT_ENGINE_21F, TRT_ENGINE_5F, TRT_ENCODER_5F, TRT_ENCODER_21F) if not p.exists()]
     if missing:
         return False, "TensorRT VAE artifacts missing: " + ", ".join(missing)
-    return True, "TensorRT tiled VAE decoder ready (temporal batches 5 and 21)."
+    return True, "TensorRT Stable and Optimized decoders ready (temporal batches 5 and 21)."
 
 
 def _progress_from_log(line: str) -> tuple[float, str] | None:
@@ -210,69 +212,10 @@ def render(
     if settings.stop_before_vae and not use_tensorrt:
         return output
     if use_tensorrt:
-        decoded_dir = output.parent / "tensorrt_decoded"
-        decoded_dir.mkdir(parents=True, exist_ok=True)
-        latent_files = sorted(capture_dir.glob("vae_latent_*.pt"))
-        if not latent_files:
-            raise MediaError(f"TensorRT render produced no VAE latents in {capture_dir}")
-        decoded_files: list[Path] = []
-        for index, latent_file in enumerate(latent_files, start=1):
-            decoded = decoded_dir / f"decoded_{index:03d}.pt"
-            import torch
-            latent_payload = torch.load(latent_file, map_location="cpu", weights_only=False)
-            latent_frames = int(latent_payload["latent"].shape[2])
-            if latent_frames == 6:
-                engine, tile, overlap = TRT_ENGINE_21F, "32", "12"
-            elif latent_frames == 2:
-                engine, tile, overlap = TRT_ENGINE_5F, "64", "24"
-            else:
-                raise MediaError(f"TensorRT VAE has no fixed engine for latent temporal size {latent_frames}; use batch size 5 or 21.")
-            command = [str(VENV_PYTHON), str(TRT_RUNNER), str(engine),
-                       str(latent_file), "--tile-latent", tile, "--overlap-latent", overlap,
-                       "--streams", "1", "--output", str(decoded)]
-            if progress_callback:
-                progress_callback(0.78 + 0.12 * (index - 1) / len(latent_files),
-                                  f"TensorRT VAE decoding batch {index} of {len(latent_files)}")
-            result = subprocess.run(command, cwd=ROOT, env=child_env, text=True,
-                                    encoding="utf-8", errors="replace",
-                                    capture_output=True)
-            _safe_print(result.stdout, end="")
-            if result.returncode:
-                raise MediaError(f"TensorRT VAE decode failed:\n{result.stderr[-4000:]}")
-            if settings.sharpen_enabled or settings.grain_enabled or settings.microtexture_enabled or settings.skin_finishing_enabled:
-                processed = decoded_dir / f"processed_{index:03d}.pt"
-                effects = [str(VENV_PYTHON), str(TRT_POSTPROCESS), str(decoded),
-                           "--output", str(processed), "--frame-start", str((index - 1) * settings.batch_size),
-                           "--seed", str(settings.seed),
-                           "--sharpen-strength", str(settings.sharpen_strength if settings.sharpen_enabled else 0.0),
-                           "--microtexture-strength", str(settings.microtexture_strength if settings.microtexture_enabled else 0.0),
-                           "--skin-evenness", str(settings.skin_evenness if settings.skin_finishing_enabled else 0.0),
-                           "--skin-smoothing", str(settings.skin_smoothing if settings.skin_finishing_enabled else 0.0),
-                           "--skin-redness", str(settings.skin_redness if settings.skin_finishing_enabled else 0.0),
-                           "--skin-shine", str(settings.skin_shine if settings.skin_finishing_enabled else 0.0),
-                           "--blemish-mode", settings.blemish_mode if settings.skin_finishing_enabled else "off",
-                           "--grain-intensity", str(settings.grain_intensity if settings.grain_enabled else 0.0),
-                           "--grain-saturation", str(settings.grain_saturation)]
-                if settings.skin_finishing_enabled and settings.preserve_marks:
-                    effects.append("--preserve-marks")
-                effect_result = subprocess.run(effects, cwd=ROOT, env=child_env, text=True,
-                                               encoding="utf-8", errors="replace", capture_output=True)
-                _safe_print(effect_result.stdout, end="")
-                if effect_result.returncode:
-                    raise MediaError(f"TensorRT post-processing failed:\n{effect_result.stderr[-4000:]}")
-                decoded = processed
-            decoded_files.append(decoded)
-        assemble = [str(VENV_PYTHON), str(TRT_ASSEMBLER), *map(str, decoded_files),
-                    "--output", str(output), "--audio", str(source),
-                    "--seam-mode", settings.seam_mode, "--seam-frames", str(settings.seam_frames)]
-        result = subprocess.run(assemble, cwd=ROOT, env=child_env, text=True,
-                                encoding="utf-8", errors="replace", capture_output=True)
-        _safe_print(result.stdout, end="")
-        if result.returncode:
-            raise MediaError(f"TensorRT video assembly failed:\n{result.stderr[-4000:]}")
-        if progress_callback:
-            progress_callback(1.0, "TensorRT render complete")
-        return output
+        from .tensorrt_pipeline import decode_postprocess_and_assemble
+        return decode_postprocess_and_assemble(
+            output, source, capture_dir, settings, child_env, progress_callback
+        )
     if not output.exists():
         raise MediaError("SeedVR2 finished but did not create the requested output file")
     if progress_callback:

@@ -58,6 +58,10 @@ def config() -> dict[str, object]:
             "4K / 2160p": {"resolution": 2160, "max_resolution": 3840, "description": "2160p / UHD output."},
         },
         "crop_policies": ["Preserve original aspect ratio", "Center crop to 16:9"],
+        "batch_sizes": {
+            "TensorRT VAE (experimental)": [5, 21],
+            "SeedVR2 AI": [1, 5, 9, 13, 17, 21, 33, 45],
+        },
         "seam_modes": {"off": "Off / original output", "noise": "Noise match — gentle", "match": "Color + noise match", "blend": "Boundary dissolve — strongest"},
         "features": {"skin_finishing": True, "open_output_folder": True, "saved_settings": True},
         "backend": {"seedvr": {"ready": installed, "message": engine}, "tensorrt": {"ready": trt_installed, "message": trt}},
@@ -391,3 +395,5 @@ def media(relative_path: str) -> FileResponse:
 
 
 app.mount("/", StaticFiles(directory=WEB, html=True), name="web")
+
+

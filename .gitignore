@@ -1,7 +1,8 @@
 .venv/
 outputs/
 models/
-vendor/seedvr2/
+!vendor/seedvr2/src/models/
+!vendor/seedvr2/src/models/**
 __pycache__/
 *.pyc
 *.log
@@ -12,3 +13,10 @@ tensorrt_backend/build/
 *.rtxplan
 *.engine
 third_party/
+.seedvr-studio-installed
+vendor/seedvr2/.github/
+vendor/seedvr2/docs/
+vendor/seedvr2/example_workflows/
+vendor/seedvr2/CONTRIBUTING.md
+vendor/seedvr2/README.md
+vendor/seedvr2/pyproject.toml

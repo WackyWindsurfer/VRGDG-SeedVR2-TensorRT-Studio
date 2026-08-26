@@ -11,6 +11,31 @@ $LogErr = Join-Path $StudioRoot 'outputs\js_server_error.log'
 $BrowserProfile = Join-Path $StudioRoot 'outputs\.studio-browser-profile'
 $ServerRootId = $null
 $KeepServerAfterLauncher = [bool]$NoBrowser
+$Installer = Join-Path $PSScriptRoot 'install.ps1'
+$InstallMarker = Join-Path $StudioRoot '.seedvr-studio-installed'
+$RequiredInstallFiles = @(
+    $StudioPython,
+    (Join-Path $StudioRoot 'vendor\seedvr2\inference_cli.py'),
+    (Join-Path $StudioRoot 'models\SEEDVR2\seedvr2_ema_3b_fp8_e4m3fn.safetensors'),
+    (Join-Path $StudioRoot 'models\SEEDVR2\ema_vae_fp16.safetensors'),
+    (Join-Path $StudioRoot 'tensorrt_backend\artifacts\vae_decoder_tile_256_21f.rtxplan'),
+    (Join-Path $StudioRoot 'tensorrt_backend\artifacts\vae_decoder_tile_512_5f.rtxplan'),
+    (Join-Path $StudioRoot 'tensorrt_backend\artifacts\vae_encoder_5f_tile512.rtxplan'),
+    (Join-Path $StudioRoot 'tensorrt_backend\artifacts\vae_encoder_21f_tile512.rtxplan')
+)
+$InstallationNeeded = -not (Test-Path -LiteralPath $InstallMarker)
+if (-not $InstallationNeeded) {
+    $InstallationNeeded = @($RequiredInstallFiles | Where-Object { -not (Test-Path -LiteralPath $_) }).Count -gt 0
+}
+if ($InstallationNeeded) {
+    Write-Host 'SeedVR Studio setup is incomplete. Starting the one-click installer...' -ForegroundColor Yellow
+    & $Installer
+    if ($LASTEXITCODE -ne 0) { throw 'SeedVR Studio installation did not complete.' }
+    $machinePath = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+    $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+    $env:Path = $machinePath + ';' + $userPath
+}
+
 
 function Test-JsStudio {
     try {
@@ -69,7 +94,7 @@ function Stop-StudioBrowserProfile {
 
 try {
     if (-not (Test-Path -LiteralPath $StudioPython)) {
-        throw 'The virtual environment is missing. Run scripts\setup_app.ps1 first.'
+        throw 'The installation is incomplete. Run Install SeedVR Studio.bat.'
     }
     if (Test-JsStudio) {
         $listener = Get-NetTCPConnection -LocalPort 7870 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1

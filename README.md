@@ -13,29 +13,17 @@ A local video restoration and upscale studio for SeedVR2 with TensorRT accelerat
 - Post-only reprocessing for sharpening, film grain, TensorRT seam smoothing, and optional skin finishing.
 - Saved settings, previous-output loading, and an Open project folder action.
 
-## Start the Studio
+## Install and start
 
-Double-click **Launch SeedVR Studio Pro.bat**. It starts the local API and opens:
+This package targets Windows with an NVIDIA RTX GPU. Allow at least 35 GB of free disk space for dependencies, model weights, temporary ONNX exports, and locally built TensorRT engines.
 
-`http://127.0.0.1:7870`
+1. Double-click **Install SeedVR Studio.bat** once after downloading or cloning the repository.
+2. Leave it open while it installs Python/FFmpeg if needed, creates the private environment, installs CUDA PyTorch, SeedVR2, SageAttention 2, and TensorRT RTX, downloads the default model and VAE, and builds engines for your GPU.
+3. Double-click **Launch SeedVR Studio Pro.bat**.
 
+The Pro launcher also detects an incomplete installation and opens the installer automatically. Downloads and TensorRT preparation are resumable. Detailed instructions and troubleshooting are in the [installation guide](docs/INSTALLATION.md).
 
-PowerShell:
-
-```powershell
-cd A:\seedvr2
-.\scripts\run_js.ps1
-```
-
-## Setup
-
-```powershell
-cd A:\seedvr2
-.\scripts\setup_app.ps1
-.\scripts\setup_seedvr2.ps1
-```
-
-Model weights are stored locally in `models\` and are not committed to GitHub. Outputs, virtual environments, TensorRT engines/caches, and the optional `third_party\` runtime are also kept local.
+Model weights are stored locally in `models\` and are not committed to GitHub. Outputs, virtual environments, TensorRT engines/caches, and optional runtime files are also kept local.
 
 ## Render engines
 
@@ -58,7 +46,7 @@ Each job is stored in its own directory under `outputs\`, including output media
 
 - Temporal batches follow SeedVR2's `4n+1` rule. Larger batches can improve consistency but use more VRAM.
 - Color correction is part of the main SeedVR2 render. `none` leaves colors unchanged; `lab` is the general-purpose matching mode.
-- SageAttention 2 is preferred when installed. Missing accelerated attention backends fall through to another available option and finally SDPA.
+- SageAttention 2 is installed and preferred by default. Missing accelerated attention backends fall through to another available option and finally SDPA. See the [SageAttention guide](docs/SAGEATTENTION.md) for verification and repair steps.
 - Leave VAE tiling off unless VRAM is insufficient; it saves memory but reduces speed.
 - Skin finishing is a non-generative post effect that enhances existing skin pixels; it cannot recreate missing facial identity detail.
 
@@ -69,10 +57,11 @@ Each job is stored in its own directory under `outputs\`, including output media
 - `seedvr_studio/` — rendering and legacy Gradio integration.
 - `tools/` — TensorRT, assembly, post-processing, and diagnostics.
 - `tensorrt_backend/` — optional native TensorRT sources.
-- `scripts/` — setup and launcher scripts.
+- `scripts/` — one-click setup, launcher, model download, verification, and engine preparation scripts.
+- `vendor/seedvr2/` — the compatible Apache-2.0 SeedVR2 integration required by the Studio.
 
 ## License
 
-The Studio source is released under the MIT License. SeedVR2 and optional runtime components retain their respective upstream licenses.
+The Studio source is released under the MIT License. SeedVR2 and runtime components retain their upstream licenses; see [third-party notices](THIRD_PARTY_NOTICES.md).
 
 

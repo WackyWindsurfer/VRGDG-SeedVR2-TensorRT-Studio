@@ -27,7 +27,7 @@
       </section>
       <section class="rail-card settings-card">
         <div class="section-kicker">RENDER ENGINE</div>
-        <div class="engine-select-row"><select id="backend"><option>SeedVR2 + TensorRT</option><option>SeedVR2 (Legacy)</option></select><button class="help-button" id="engine-help" type="button" title="About the render engines">?</button></div>
+        <div class="engine-select-row"><select id="backend"><option selected>SeedVR2 + TensorRT</option><option>SeedVR2 (Legacy)</option></select><button class="help-button" id="engine-help" type="button" title="About the render engines">?</button></div>
         <div class="field-label">Hardware preset</div><select id="preset"><option>Custom / manual</option></select>
         <div class="field-label">Output size</div><select id="output-preset"><option>Original enhancement only</option><option selected>1K / 1080p</option><option>2K / 1440p</option><option>4K / 2160p</option></select>
         <div class="field-label">Crop / aspect policy</div><select id="crop-policy"><option>Preserve original aspect ratio</option><option>Center crop to 16:9</option></select>
@@ -43,7 +43,7 @@
       </section>
     </aside>
     <section class="viewer-column">
-      <div class="viewer-header"><div><span class="eyebrow">SEEDVR STUDIO</span><h1>Video restoration workspace</h1></div><div class="header-actions"><div class="render-meta"><span id="render-status">Ready</span><span>Elapsed <strong id="elapsed-time">00:00</strong></span><span>ETA <strong id="eta-time">—</strong></span></div><button class="icon-button" id="exit-studio" title="Exit Studio and release GPU/RAM">⏻</button><button class="icon-button" id="fullscreen" title="Fullscreen">⛶</button></div></div>
+      <div class="viewer-header"><div><span class="eyebrow">SEEDVR STUDIO</span><h1>Video restoration and upscale</h1></div><div class="header-actions"><div class="render-meta"><span id="render-status">Ready</span><span>Elapsed <strong id="elapsed-time">00:00</strong></span><span>ETA <strong id="eta-time">—</strong></span></div><button class="icon-button" id="exit-studio" title="Exit Studio and release GPU/RAM">⏻</button><button class="icon-button" id="fullscreen" title="Fullscreen">⛶</button></div></div>
       <section class="inspector" id="inspector" tabindex="0">
         <div class="modebar">
           <button class="mode-button" data-mode="original">Original</button>
@@ -69,9 +69,11 @@
     </section>
   </main>
   <dialog id="engine-help-dialog"><form method="dialog"><button class="dialog-close" aria-label="Close">×</button><h2>Render engines</h2><p><strong>SeedVR2 + TensorRT</strong> runs the SeedVR2 restoration pipeline with the TensorRT-accelerated VAE decoding path. It is the recommended fast option on supported NVIDIA systems.</p><p><strong>SeedVR2 (Legacy)</strong> uses the standard SeedVR2 PyTorch path. It can support more temporal batch sizes, but it is substantially slower and may take a very long time on video. Use it at your own risk for long renders.</p><p>TensorRT currently supports temporal batches 5 and 21. The batch dropdown updates automatically when you switch engines.</p><button class="primary-button" value="close">Got it</button></form></dialog> <dialog id="chunk-help-dialog"><form method="dialog"><button class="dialog-close" aria-label="Close">×</button><h2>Resumable long-video rendering</h2><p>When enabled, the full video is divided into manageable chunks and processed one at a time. Completed chunks are saved immediately, with a small temporal overlap to reduce boundary seams.</p><p>If a render fails, the completed chunks remain on disk. The failure reason and backend log are saved, and <strong>Retry from last chunk</strong> continues from the first unfinished chunk automatically.</p><p>This is off by default. It does not change the normal render quality or require any manual chunk assembly.</p><button class="primary-button" value="close">Got it</button></form></dialog>
-  <script type="module" src="/app.js?v=20260825-23"></script>
+  <script type="module" src="/app.js?v=20260825-24"></script>
 </body>
 </html>
+
+
 
 
 

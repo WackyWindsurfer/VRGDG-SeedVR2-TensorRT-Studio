@@ -54,7 +54,7 @@ const restoreSettings = () => {
     element.value = String(value);
   });
   // Browser form restoration must never silently replace the unsaved default.
-  if (!saved) { $('#attention').value = 'sageattn_2'; $('#color').value = 'none'; }
+  if (!saved) { $('#backend').value = 'SeedVR2 + TensorRT'; $('#attention').value = 'sageattn_2'; $('#color').value = 'none'; }
   refreshSettingsUi();
   $('#settings-save-status').textContent = saved ? 'Saved settings loaded' : 'Using app defaults';
 };
@@ -185,3 +185,5 @@ const setSkinBackendAvailable = (available) => { $('#skin-backend-warning').hidd
 const loadConfig = async () => { try { const config = await (await fetch('/api/config')).json(); window.__seedvrBatchSizes = config.batch_sizes || defaultBatchSizes; fillSelect('model', config.models); fillSelect('preset', Object.keys(config.presets)); fillSelect('output-preset', Object.keys(config.output_presets)); fillSelect('crop-policy', config.crop_policies); const saved = loadSavedSettings(); if (saved?.values?.backend) $('#backend').value = String(saved.values.backend); updateBatchOptions($('#backend').value); $('#output-preset').value = '1K / 1080p'; $('#crop-policy').value = 'Preserve original aspect ratio'; if (config.seam_modes) { $('#seam-enabled').disabled = false; $('#seam-enabled').title = 'Color + noise match over 2 frames'; } else { $('#seam-enabled').title = 'Available after the JS backend is restarted'; } const preset = $('#preset'); preset.addEventListener('change', () => { const value = config.presets[preset.value]; if (!value) return; ['model','batch-size','attention','blocks'].forEach((id) => { const key = {'batch-size':'batch_size','model':'model','attention':'attention','blocks':'blocks'}[id]; if (value[key] != null) $(`#${id}`).value = value[key]; }); updateBatchOptions($('#backend').value, value.batch_size); $('#vae-tiling').checked = Boolean(value.vae_tiling); $('#blocks-value').textContent = $('#blocks').value; }); restoreSettings(); updateBatchOptions($('#backend').value, $('#batch-size').value); setSkinBackendAvailable(config.features?.skin_finishing === true); const backend = config.backend; $('#api-status').textContent = backend.seedvr?.message || 'API ready'; } catch (_) { updateBatchOptions($('#backend').value); restoreSettings(); updateBatchOptions($('#backend').value, $('#batch-size').value); setSkinBackendAvailable(false); $('#api-status').textContent = 'API ready · config unavailable'; } };loadConfig();
 
 
+
+$('#engine-help').addEventListener('click', () => $('#engine-help-dialog').showModal());

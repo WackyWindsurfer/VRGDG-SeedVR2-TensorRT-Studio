@@ -1,6 +1,6 @@
 # VRGDG SeedVR2 TensorRT Studio
 
-A local video restoration studio for SeedVR2 with a custom JavaScript interface, FastAPI backend, and optional TensorRT acceleration for faster VAE processing.
+A local video restoration and upscale studio for SeedVR2 with TensorRT acceleration for faster VAE processing, a custom JavaScript interface, and FastAPI backend.
 
 ## Features
 

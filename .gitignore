@@ -11,3 +11,4 @@ tensorrt_backend/artifacts/
 tensorrt_backend/build/
 *.rtxplan
 *.engine
+third_party/

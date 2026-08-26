@@ -17,7 +17,7 @@ button,select,input { font:inherit; }
 .chunk-toggle { display:flex; align-items:center; gap:6px; margin-top:13px; }
 .help-button { width:18px; height:18px; padding:0; border:1px solid #626a75; border-radius:50%; background:transparent; color:#dce1e7; font-size:11px; line-height:16px; cursor:pointer; }
 .help-button:hover { border-color:var(--accent); color:#fff; }
-#chunk-length-wrap { display:block; }
+#chunk-length-wrap { display:block; } #chunk-length-wrap[hidden] { display:none !important; }
 #chunk-length-wrap select { margin-top:5px; }
 .dialog-close { position:absolute; top:10px; right:12px; border:0; background:transparent; color:#aeb6c1; font-size:22px; cursor:pointer; }
 #chunk-help-dialog { width:min(520px, calc(100vw - 32px)); padding:25px 28px; border:1px solid #454c56; border-radius:10px; background:#171a20; color:var(--text); box-shadow:0 25px 80px #000b; }
@@ -34,3 +34,4 @@ button,select,input { font:inherit; }
 #skin-options.inactive { opacity:.48; }
 .skin-master { margin-bottom:4px; }
 .feature-warning { margin:8px 0; padding:8px 9px; border:1px solid #8b5139; border-radius:6px; background:#3a241c; color:#ffc09e; font-size:10px; line-height:1.45; }
+

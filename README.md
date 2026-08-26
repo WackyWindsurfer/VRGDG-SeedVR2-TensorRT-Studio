@@ -19,10 +19,6 @@ Double-click **Launch SeedVR Studio Pro.bat**. It starts the local API and opens
 
 `http://127.0.0.1:7870`
 
-Other launchers:
-
-- **Launch SeedVR Studio JS.bat** — starts the JavaScript Studio directly.
-- **Launch SeedVR Studio.bat** — starts the legacy Gradio interface.
 
 PowerShell:
 
@@ -78,4 +74,5 @@ Each job is stored in its own directory under `outputs\`, including output media
 ## License
 
 The Studio source is released under the MIT License. SeedVR2 and optional runtime components retain their respective upstream licenses.
+
 

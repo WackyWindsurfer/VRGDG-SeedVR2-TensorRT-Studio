@@ -52,7 +52,7 @@ def config() -> dict[str, object]:
     return {
         "models": list(MODEL_FILES),
         "output_presets": {
-            "Original enhancement only": {"resolution": "source", "max_resolution": "source", "description": "Keep the source dimensions; enhancement only."},
+            "Original / enhancement only": {"resolution": "source", "max_resolution": "source", "description": "Keep the source dimensions; enhancement only."},
             "1K / 1080p": {"resolution": 1080, "max_resolution": 1920, "description": "1080p-class output."},
             "2K / 1440p": {"resolution": 1440, "max_resolution": 2560, "description": "1440p-class output."},
             "4K / 2160p": {"resolution": 2160, "max_resolution": 3840, "description": "2160p / UHD output."},
@@ -167,7 +167,7 @@ def _render_job(job_id: str, source: Path, job_dir: Path, values: dict[str, obje
             source = make_center_crop(source, job_dir / f"cropped{source.suffix or '.mp4'}")
         info = probe(source)
         output_preset = str(values.get("output_preset", "1K / 1080p"))
-        if output_preset == "Original enhancement only":
+        if output_preset in {"Original / enhancement only", "Original enhancement only"}:
             values["resolution"] = min(info.width, info.height)
             values["max_resolution"] = max(info.width, info.height)
         else:
@@ -395,6 +395,7 @@ def media(relative_path: str) -> FileResponse:
 
 
 app.mount("/", StaticFiles(directory=WEB, html=True), name="web")
+
 
 
 

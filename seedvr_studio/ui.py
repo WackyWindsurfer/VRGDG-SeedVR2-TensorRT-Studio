@@ -166,7 +166,7 @@ def build_app() -> gr.Blocks:
             with gr.Column(scale=1, min_width=340, elem_classes="studio-panel"):
                 video = gr.Video(label="Source video", sources=["upload"], include_audio=True)
                 media_info = gr.Markdown("Drop a video to begin.")
-                backend = gr.Dropdown(["TensorRT VAE (experimental)", "SeedVR2 AI"], value="TensorRT VAE (experimental)", label="Render engine", interactive=True, info="TensorRT currently supports temporal batches 5 and 21.")
+                backend = gr.Dropdown(["SeedVR2 + TensorRT", "SeedVR2 (Legacy)"], value="SeedVR2 + TensorRT", label="Render engine", interactive=True, info="TensorRT currently supports temporal batches 5 and 21.")
                 gr.Markdown(f"**SeedVR2:** {engine_message}\n\n**TensorRT:** {trt_message}")
                 hardware = gr.Dropdown(list(HARDWARE_PRESETS), value="Custom / manual", label="Hardware / VRAM preset", info="Applies safe starting settings; you can fine-tune them afterward.")
                 with gr.Accordion("Model and quality", open=True):
@@ -218,3 +218,4 @@ def build_app() -> gr.Blocks:
         full_button.click(render_full, inputs=common, outputs=[status, comparison_player], concurrency_limit=1, show_progress="full")
         stop_button.click(cancel_current_render, outputs=status, queue=False, show_progress="hidden")
     return app
+

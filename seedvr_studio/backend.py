@@ -131,10 +131,10 @@ def render(
     if not available:
         raise MediaError(reason + " Run scripts\\setup_seedvr2.ps1 first.")
 
-    use_tensorrt = backend_name.startswith("TensorRT") and not settings.stop_before_vae
+    use_tensorrt = "TensorRT" in backend_name and not settings.stop_before_vae
     if use_tensorrt:
         if settings.batch_size not in (5, 21):
-            raise MediaError("TensorRT VAE currently supports temporal batch sizes 5 and 21; use SeedVR2 AI for other sizes.")
+            raise MediaError("SeedVR2 + TensorRT currently supports temporal batch sizes 5 and 21; use SeedVR2 (Legacy) for other sizes.")
         trt_available, trt_reason = tensorrt_status()
         if not trt_available:
             raise MediaError(trt_reason)
@@ -369,3 +369,5 @@ def reprocess_tensorrt(
     if progress_callback:
         progress_callback(1.0, "Post-only reprocess complete")
     return output
+
+

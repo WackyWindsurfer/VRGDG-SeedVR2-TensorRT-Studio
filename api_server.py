@@ -59,8 +59,8 @@ def config() -> dict[str, object]:
         },
         "crop_policies": ["Preserve original aspect ratio", "Center crop to 16:9"],
         "batch_sizes": {
-            "TensorRT VAE (experimental)": [5, 21],
-            "SeedVR2 AI": [1, 5, 9, 13, 17, 21, 33, 45],
+            "SeedVR2 + TensorRT": [5, 21],
+            "SeedVR2 (Legacy)": [1, 5, 9, 13, 17, 21, 33, 45],
         },
         "seam_modes": {"off": "Off / original output", "noise": "Noise match — gentle", "match": "Color + noise match", "blend": "Boundary dissolve — strongest"},
         "features": {"skin_finishing": True, "open_output_folder": True, "saved_settings": True},
@@ -252,7 +252,7 @@ def _reprocess_job(job_id: str, source_output: Path, values: dict[str, object]) 
 @app.post("/api/jobs")
 async def create_job(
     file: UploadFile = File(...),
-    job_type: str = Form("preview"), backend_name: str = Form("TensorRT VAE (experimental)"),
+    job_type: str = Form("preview"), backend_name: str = Form("SeedVR2 + TensorRT"),
     output_preset: str = Form("1K / 1080p"), crop_policy: str = Form("Preserve original aspect ratio"),
     preview_start: float = Form(0), preview_seconds: float = Form(3), resolution: int = Form(1080), max_resolution: int = Form(3840), batch_size: int = Form(21), seed: int = Form(42),
     model_label: str = Form("3B FP16 — best 3B quality"), color_correction: str = Form("none"), attention_mode: str = Form("sageattn_2"), blocks_to_swap: int = Form(0), vae_tiling: str = Form("false"), stop_before_vae: str = Form("false"),
@@ -395,5 +395,6 @@ def media(relative_path: str) -> FileResponse:
 
 
 app.mount("/", StaticFiles(directory=WEB, html=True), name="web")
+
 
 

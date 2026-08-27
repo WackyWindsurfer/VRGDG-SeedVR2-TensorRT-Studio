@@ -10,3 +10,5 @@ dependencies = [
   "pillow>=10.4",
   "pip-system-certs>=5.3",
 ]
+[tool.setuptools.packages.find]
+include = ["seedvr_studio*"]

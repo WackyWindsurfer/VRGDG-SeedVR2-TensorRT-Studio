@@ -21,7 +21,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from seedvr_studio.backend import MODEL_FILES, backend_status, render, reprocess_tensorrt, tensorrt_status
-from seedvr_studio.cancellation import cancel_current_render
+from seedvr_studio.cancellation import begin_render, cancel_current_render, cancellation_requested
 from seedvr_studio.jobs import _settings
 from seedvr_studio.media import concat_videos, make_center_crop, make_clip, probe, trim_video_start
 from seedvr_studio.paths import ensure_workspace
@@ -63,7 +63,8 @@ def config() -> dict[str, object]:
             "SeedVR2 (Legacy)": [1, 5, 9, 13, 17, 21, 33, 45],
         },
         "seam_modes": {"off": "Off / original output", "noise": "Noise match — gentle", "match": "Color + noise match", "blend": "Boundary dissolve — strongest"},
-        "features": {"skin_finishing": True, "open_output_folder": True, "saved_settings": True},
+        "features": {"skin_finishing": True, "open_output_folder": True, "saved_settings": True, "persistent_decoder": True},
+        "decoder_modes": {"stable": "Stable", "optimized": "Optimized (Beta)", "optimized_fast": "Optimized Fast (Beta)"},
         "backend": {"seedvr": {"ready": installed, "message": engine}, "tensorrt": {"ready": trt_installed, "message": trt}},
         "presets": {
             "Custom / manual": None,
@@ -177,6 +178,7 @@ def _render_chunked(job_id: str, source: Path, job_dir: Path, output: Path, sett
 
 
 def _render_job(job_id: str, source: Path, job_dir: Path, values: dict[str, object]) -> None:
+    begin_render()
     started = time.perf_counter()
     try:
         source_info = probe(source)
@@ -200,7 +202,12 @@ def _render_job(job_id: str, source: Path, job_dir: Path, values: dict[str, obje
         else:
             source_for_render = source
             output = job_dir / f"{source.stem}-restored.mp4"
-        settings = _settings(values["resolution"], values["max_resolution"], values["batch_size"], values["seed"], values["model_label"], values["color_correction"], values["attention_mode"], values["blocks_to_swap"], values["vae_tiling"], values["stop_before_vae"], values["sharpen_enabled"], values["sharpen_strength"], values["grain_enabled"], values["grain_intensity"], values["grain_saturation"], values.get("microtexture_enabled", False), values.get("microtexture_strength", .60), values.get("skin_finishing_enabled", False), values.get("skin_evenness", .25), values.get("skin_smoothing", .20), values.get("skin_redness", .15), values.get("skin_shine", .15), values.get("blemish_mode", "off"), values.get("preserve_marks", True), values.get("seam_mode", "match"), values.get("seam_frames", 2))
+        settings = _settings(values["resolution"], values["max_resolution"], values["batch_size"], values["seed"], values["model_label"], values["color_correction"], values["attention_mode"], values["blocks_to_swap"], values["vae_tiling"], values["stop_before_vae"], values["sharpen_enabled"], values["sharpen_strength"], values["grain_enabled"], values["grain_intensity"], values["grain_saturation"], values.get("microtexture_enabled", False), values.get("microtexture_strength", .60), values.get("skin_finishing_enabled", False), values.get("skin_evenness", .25), values.get("skin_smoothing", .20), values.get("skin_redness", .15), values.get("skin_shine", .15), values.get("blemish_mode", "off"), values.get("preserve_marks", True), values.get("seam_mode", "match"), values.get("seam_frames", 2), values.get("decoder_mode", "stable"))
+        (job_dir / "job-manifest.json").write_text(json.dumps({
+            "version": 1, "job_id": job_id, "job_type": job_type,
+            "backend": str(values["backend_name"]), "source": str(source_for_render),
+            "output": str(output), "settings": settings.__dict__,
+        }, indent=2), encoding="utf-8")
         _update(job_id, status="running", progress=0.02, message="Starting SeedVR2", fps=info.fps, duration=length if job_type == "preview" else info.duration, started_at=time.time())
         log_path = job_dir / "render.log"
         def report(progress: float, message: str) -> None:
@@ -226,7 +233,8 @@ def _render_job(job_id: str, source: Path, job_dir: Path, values: dict[str, obje
                 log.write(details + "\n")
         except OSError:
             pass
-        _update(job_id, status="error", message=str(exc), elapsed_seconds=time.perf_counter() - started, error=str(exc), failure_reason=str(exc), log_file=str(log_path), resumable=_bool(values.get("chunked_render", False)))
+        final_status = "cancelled" if cancellation_requested() else "error"
+        _update(job_id, status=final_status, message=str(exc), elapsed_seconds=time.perf_counter() - started, error=str(exc), failure_reason=str(exc), log_file=str(log_path), resumable=_bool(values.get("chunked_render", False)))
 
 
 def _reprocess_job(job_id: str, source_output: Path, values: dict[str, object]) -> None:
@@ -279,7 +287,7 @@ async def create_job(
     skin_finishing_enabled: str = Form("false"), skin_evenness: float = Form(.25), skin_smoothing: float = Form(.20),
     skin_redness: float = Form(.15), skin_shine: float = Form(.15), blemish_mode: str = Form("off"), preserve_marks: str = Form("true"),
     seam_mode: str = Form("match"), seam_frames: int = Form(2),
-    chunked_render: str = Form("false"), chunk_seconds: float = Form(0),
+    chunked_render: str = Form("false"), chunk_seconds: float = Form(0), decoder_mode: str = Form("stable"),
 ) -> dict[str, str]:
     ensure_workspace()
     job_id = uuid4().hex[:10]

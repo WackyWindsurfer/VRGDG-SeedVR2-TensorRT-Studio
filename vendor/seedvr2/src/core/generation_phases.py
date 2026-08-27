@@ -746,19 +746,49 @@ def upscale_all_batches(
             # Use autocast if DiT dtype differs from compute dtype
             # Skip autocast on MPS (CompatibleDiT already handles dtype conversion)
             debug.start_timer(f"dit_inference_{upscale_idx+1}")
-            with torch.no_grad():
-                if dit_dtype != ctx['compute_dtype'] and ctx['dit_device'].type != 'mps':
-                    with torch.autocast(ctx['dit_device'].type, ctx['compute_dtype'], enabled=True):
-                        upscaled_latents = runner.inference(
-                            noises=noises,
-                            conditions=conditions,
-                            **ctx['text_embeds'],
-                        )
-                else:
-                    upscaled_latents = runner.inference(
+
+            def _run_dit_once():
+                """Run one deterministic DiT attempt for the current batch."""
+                with torch.no_grad():
+                    if dit_dtype != ctx['compute_dtype'] and ctx['dit_device'].type != 'mps':
+                        with torch.autocast(ctx['dit_device'].type, ctx['compute_dtype'], enabled=True):
+                            return runner.inference(
+                                noises=noises,
+                                conditions=conditions,
+                                **ctx['text_embeds'],
+                            )
+                    return runner.inference(
                         noises=noises,
                         conditions=conditions,
                         **ctx['text_embeds'],
+                    )
+
+            def _invalid_dit_result(outputs):
+                value = outputs[0]
+                if not torch.isfinite(value).all().item():
+                    return "non-finite values"
+                peak = float(value.float().abs().amax().item())
+                if peak > 128.0:
+                    return f"exploded latent values (peak={peak:g})"
+                return None
+
+            upscaled_latents = _run_dit_once()
+            invalid_reason = _invalid_dit_result(upscaled_latents)
+            if invalid_reason:
+                debug.log(
+                    f"DiT batch {upscale_idx+1} produced {invalid_reason}; retrying once",
+                    level="WARNING", category="generation", force=True,
+                )
+                del upscaled_latents
+                if ctx['dit_device'].type == 'cuda':
+                    torch.cuda.synchronize(ctx['dit_device'])
+                    torch.cuda.empty_cache()
+                set_seed(seed)
+                upscaled_latents = _run_dit_once()
+                invalid_reason = _invalid_dit_result(upscaled_latents)
+                if invalid_reason:
+                    raise RuntimeError(
+                        f"DiT batch {upscale_idx+1} remained corrupt after automatic retry: {invalid_reason}"
                     )
             debug.end_timer(f"dit_inference_{upscale_idx+1}", f"DiT inference {upscale_idx+1}")
             

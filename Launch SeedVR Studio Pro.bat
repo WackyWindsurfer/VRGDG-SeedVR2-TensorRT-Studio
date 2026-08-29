@@ -8,9 +8,9 @@ set "seedvr_exit_code=%errorlevel%"
 if not "%seedvr_exit_code%"=="0" (
   echo.
   echo SeedVR Studio Pro failed to start. Exit code: %seedvr_exit_code%
+  echo See outputs\js_server_error.log if the window never appeared.
   pause
   exit /b %seedvr_exit_code%
 )
-echo SeedVR Studio Pro is running at http://127.0.0.1:7870
 endlocal
 exit /b 0

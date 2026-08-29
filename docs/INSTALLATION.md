@@ -51,6 +51,7 @@ Common failures:
 
 - **No NVIDIA driver detected:** install or update the NVIDIA driver, restart Windows, and rerun setup.
 - **Not enough disk space:** clear space and rerun. Partial model downloads resume.
+- **Launch reports that the app window did not open:** the server often did start. Older launchers required an Edge window handle that Windows 11 does not always expose, then shut the server down. Use **Launch SeedVR Studio Pro.bat** (not the installer). If the UI still vanishes, open http://127.0.0.1:7870/ and check **outputs\js_server_error.log**.
 - **TensorRT build failure:** close GPU-heavy programs, confirm the NVIDIA driver is current, then rerun.
 - **SageAttention verification failure:** follow the [SageAttention guide](SAGEATTENTION.md).
 - **FFmpeg still missing after winget:** restart Windows so the system PATH refreshes, then rerun.

@@ -56,3 +56,16 @@ Common failures:
 - **FFmpeg still missing after winget:** restart Windows so the system PATH refreshes, then rerun.
 
 The installer does not require a separate full CUDA Toolkit. The Python CUDA and TensorRT packages provide the runtime used by the Studio.
+
+
+### If TensorRT export appears hung
+
+The first TensorRT profile performs a fixed-shape ONNX export and can take several minutes. The installer prints an export start message and elapsed time; leave the window open while it runs. Engine preparation is resumable, so completed `.rtxplan` files are skipped on the next run.
+
+If you need to finish setup without TensorRT, run:
+
+```powershell
+.\scripts\install.ps1 -SkipTensorRT
+```
+
+This leaves SeedVR2 Legacy available. Run the installer again later to build missing GPU-specific engines.

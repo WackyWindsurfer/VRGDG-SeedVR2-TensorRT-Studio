@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,7 +21,7 @@ PROFILES = (
 
 def run(command: list[str]) -> None:
     print("\n> " + subprocess.list2cmdline(command), flush=True)
-    subprocess.run(command, cwd=ROOT, check=True)
+    subprocess.run([command[0], "-u", *command[1:]], cwd=ROOT, check=True)
 
 
 def main() -> int:
@@ -31,12 +32,14 @@ def main() -> int:
         if engine.exists() and engine.stat().st_size > 1_000_000:
             print(f"Skipping {label}; engine already exists: {engine.name}")
             continue
-        print(f"\nPreparing TensorRT {label} profile...")
+        print(f"\nPreparing TensorRT {label} profile (keep this window open)...", flush=True)
+        started = time.perf_counter()
         if not onnx.exists():
             run([str(PYTHON), str(ROOT / "tools" / exporter), *arguments, "--output", str(onnx)])
         run([str(PYTHON), str(ROOT / "tools" / "build_tensorrt_engine.py"), str(onnx), "--output", str(engine), "--workspace-gb", "8"])
         if not engine.exists():
             raise RuntimeError(f"TensorRT did not create {engine}")
+        print(f"Completed {label} in {time.perf_counter() - started:.1f}s", flush=True)
     print("\nAll TensorRT VAE engines are ready.")
     return 0
 

@@ -21,6 +21,7 @@ from src.models.video_vae_v3.modules.types import MemoryState  # noqa: E402
 from src.models.video_vae_v3.modules.causal_inflation_lib import InflatedCausalConv3d  # noqa: E402
 from src.utils.debug import Debug  # noqa: E402
 from src.utils.model_registry import DEFAULT_DIT, DEFAULT_VAE  # noqa: E402
+from onnx_export_utils import export_portable_onnx  # noqa: E402
 
 
 class Encoder(torch.nn.Module):
@@ -80,10 +81,7 @@ def main() -> None:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with torch.inference_mode():
         reference = encoder(video)
-        encoder_cpu = Encoder(vae.cpu()).eval()
-        torch.onnx.export(encoder_cpu, (video.cpu(),), str(args.output),
-                          input_names=["video"], output_names=["latent_raw"],
-                          opset_version=20, dynamo=not args.legacy_export, optimize=False)
+        export_portable_onnx(encoder, (video,), args.output, legacy=args.legacy_export)
     print(f"Exported: {args.output}")
     print(f"Video shape: {tuple(video.shape)}")
     print(f"Raw latent shape: {tuple(reference.shape)}")

@@ -91,7 +91,7 @@ class InflatedCausalConv3d(Conv3d):
         Workaround: Call torch.cudnn_convolution directly to bypass buggy layer.
         Status is logged at startup in compatibility.py.
         """
-        if (NVIDIA_CONV3D_MEMORY_BUG_WORKAROUND and 
+        if (input.is_cuda and NVIDIA_CONV3D_MEMORY_BUG_WORKAROUND and
             weight.dtype in (torch.float16, torch.bfloat16) and 
             hasattr(torch.backends.cudnn, 'is_available') and
             torch.backends.cudnn.is_available() and

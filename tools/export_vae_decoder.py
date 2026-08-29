@@ -26,6 +26,7 @@ from src.utils.debug import Debug  # noqa: E402
 from src.utils.model_registry import DEFAULT_DIT, DEFAULT_VAE  # noqa: E402
 from src.models.video_vae_v3.modules.types import MemoryState  # noqa: E402
 from src.models.video_vae_v3.modules.causal_inflation_lib import InflatedCausalConv3d  # noqa: E402
+from onnx_export_utils import export_portable_onnx  # noqa: E402
 
 
 class Decoder(torch.nn.Module):
@@ -111,21 +112,7 @@ def main() -> None:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with torch.inference_mode():
         reference = decoder(latent)
-        # ONNX export must trace the portable convolution operators rather
-        # than CUDA-only aten::cudnn_convolution. Keep the CUDA result above
-        # as the reference, then export an identical CPU copy.
-        decoder_cpu = Decoder(vae.decoder.cpu()).eval()
-        latent_cpu = latent.cpu()
-        torch.onnx.export(
-            decoder_cpu,
-            (latent_cpu,),
-            str(args.output),
-            input_names=["latent"],
-            output_names=["sample"],
-            opset_version=20,
-            dynamo=not args.legacy_export,
-            optimize=False,
-        )
+        export_portable_onnx(decoder, (latent,), args.output, legacy=args.legacy_export)
     print(f"Exported: {args.output}")
     print(f"Latent shape: {tuple(latent.shape)}")
     print(f"Output shape: {tuple(reference.shape)}")

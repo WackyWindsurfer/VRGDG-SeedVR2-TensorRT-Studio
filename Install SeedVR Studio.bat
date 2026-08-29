@@ -9,7 +9,8 @@ echo.
 if not "%seedvr_exit_code%"=="0" (
   echo Installation failed. See the message above and outputs\install.log.
 ) else (
-  echo Installation complete. You can now launch SeedVR Studio Pro.
+  echo Installation complete.
+  echo Double-click Launch SeedVR Studio Pro.bat to start the app.
 )
 pause
 exit /b %seedvr_exit_code%

@@ -73,9 +73,18 @@ function Stop-StudioProcessTree([int]$RootProcessId) {
 }
 
 function Get-StudioBrowserProcesses {
+    $profileMarker = '.studio-browser-profile'
     return Get-CimInstance Win32_Process | Where-Object {
-        $_.Name -in @('msedge.exe', 'chrome.exe') -and $_.CommandLine -like "*$BrowserProfile*"
+        $_.Name -in @('msedge.exe', 'chrome.exe') -and
+        $_.CommandLine -and
+        ($_.CommandLine -like "*$profileMarker*" -or $_.CommandLine -like "*$BrowserProfile*")
     }
+}
+
+function Test-ProcessAlive([int]$ProcessId) {
+    if (-not $ProcessId) { return $false }
+    $proc = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
+    return [bool]($proc -and -not $proc.HasExited)
 }
 
 function Test-StudioAppWindow {
@@ -84,6 +93,12 @@ function Test-StudioAppWindow {
         if ($nativeProcess -and $nativeProcess.MainWindowHandle -ne 0) { return $true }
     }
     return $false
+}
+
+function Test-StudioAppRunning([int]$LaunchedProcessId) {
+    if (Test-StudioAppWindow) { return $true }
+    if (@(Get-StudioBrowserProcesses).Count -gt 0) { return $true }
+    return Test-ProcessAlive $LaunchedProcessId
 }
 
 function Stop-StudioBrowserProfile {
@@ -106,6 +121,7 @@ try {
         New-Item -ItemType Directory -Force -Path (Split-Path -Parent $LogOut) | Out-Null
         $env:PYTHONUTF8 = '1'
         $env:PYTHONIOENCODING = 'utf-8'
+        $env:PYTHONUNBUFFERED = '1'
         $server = Start-Process -FilePath $StudioPython -WorkingDirectory $StudioRoot -WindowStyle Hidden -PassThru `
             -ArgumentList '-m uvicorn api_server:app --host 127.0.0.1 --port 7870' `
             -RedirectStandardOutput $LogOut -RedirectStandardError $LogErr
@@ -135,15 +151,20 @@ try {
         '--no-first-run',
         '--disable-background-mode'
     )
-    Write-Host 'Close the SeedVR Studio window to stop rendering and release GPU/RAM.' -ForegroundColor Cyan
-    $windowSeen = $false
-    for ($attempt = 0; $attempt -lt 60; $attempt++) {
+    $appSeen = $false
+    for ($attempt = 0; $attempt -lt 80; $attempt++) {
         Start-Sleep -Milliseconds 250
-        if (Test-StudioAppWindow) { $windowSeen = $true; break }
-        if ($browser.HasExited) { break }
+        if (Test-StudioAppRunning $browser.Id) { $appSeen = $true; break }
     }
-    if (-not $windowSeen) { throw 'The SeedVR Studio app window did not open.' }
-    while (Test-StudioAppWindow) { Start-Sleep -Milliseconds 500 }
+    if ($appSeen) {
+        Write-Host 'Close the SeedVR Studio window to stop rendering and release GPU/RAM.' -ForegroundColor Cyan
+        while (Test-StudioAppRunning $browser.Id) { Start-Sleep -Milliseconds 500 }
+    }
+    else {
+        Write-Warning "The dedicated app window could not be tracked. Studio remains at $StudioUrl"
+        Write-Warning 'Use Exit Studio in the UI to release GPU and RAM.'
+        $KeepServerAfterLauncher = $true
+    }
 }
 catch {
     Write-Error $_

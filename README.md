@@ -72,69 +72,73 @@ The Studio source is released under the MIT License. SeedVR2 and runtime compone
 
 ## UI guide
 
-The Studio is organized into a settings rail on the left and a video viewer on the right. The screenshots below show the main controls and available settings.
+The Studio’s layout is simple: configure a render in the left settings panel, then review the result in the viewer on the right. The guide below uses focused screenshots so each section can be understood without scanning the entire interface.
 
-### Main viewer and comparison controls
+### 1. Review the result
 
-![Viewer controls](<images/top panel for org restored compare and side by side.png>)
+![Viewer controls](<images/ui-guide/viewer-controls.png>)
 
-The viewer provides four display modes:
+The viewer is where you inspect the source and rendered output:
 
-- **Original** shows only the uploaded source video.
-- **Restored** shows the latest rendered result.
-- **Compare** overlays the restored video over the original with a draggable wipe divider.
-- **Side by side** places the original and restored videos next to each other.
+- **Original** — source video only.
+- **Restored** — rendered result only.
+- **Compare** — a draggable wipe between source and result.
+- **Side by side** — source and result displayed together.
+- Use the timeline, frame field, previous/next buttons, and play button to navigate. Zoom with the zoom control or mouse wheel; drag to pan and double-click to reset.
 
-Use the shared timeline to scrub, the frame field or previous/next buttons for frame navigation, and the play button to play both videos together. The wipe control changes the comparison boundary. The zoom button, mouse wheel, drag, and double-click reset control viewer zoom and pan.
+### 2. Choose the render path and output shape
 
-### Render engine and output settings
+![Render settings](<images/ui-guide/render-settings.png>)
 
-![Studio settings overview](<images/2026-08-29 19_48_34-.png>)
+- **Render engine** selects the accelerated **SeedVR2 + TensorRT** path or **SeedVR2 (Legacy)**.
+- **Hardware preset** provides a starting point for the available VRAM. Use **Custom / manual** when tuning settings yourself.
+- **Output size** offers original enhancement, 1K / 1080p, 2K / 1440p, and 4K / 2160p targets.
+- **Crop / aspect policy** preserves the source aspect ratio or center-crops to 16:9.
+- **Resumable long-video render** stores completed chunks so a long job can continue after an interruption. **Auto** chooses a chunk size automatically.
 
-- **Render engine** chooses **SeedVR2 + TensorRT** for the accelerated path or **SeedVR2 (Legacy)** for the standard PyTorch path.
-- **Hardware preset** applies a starting configuration for the selected VRAM class. Choose **Custom / manual** to set everything yourself.
-- **Output size** chooses **Original / enhancement only**, **1K / 1080p**, **2K / 1440p**, or **4K / 2160p**.
-- **Crop / aspect policy** either preserves the source aspect ratio or center-crops to 16:9.
-- **Resumable long-video render** saves completed chunks so a failed long render can continue later. **Auto** chooses a chunk size based on duration, frame rate, and temporal batch size.
+### 3. Select the model and temporal settings
 
-![Output and model settings](<images/2026-08-29 19_48_56-Movies & TV.png>)
+![Output and model settings](<images/ui-guide/output-model-settings.png>)
 
-- **Model** selects the installed SeedVR2 model. FP8 models use less VRAM; FP16 models prioritize quality and require more memory.
-- **Temporal batch** controls how many frames are processed together. TensorRT supports **5** and **21**; larger batches may improve temporal consistency but require more VRAM.
-- **Seed** makes the restoration repeatable when the other settings and source are unchanged.
-- **Color correction** offers `none`, `lab`, `wavelet`, `wavelet_adaptive`, `hsv`, and `adain`. Start with `none` when source colors should be preserved.
+- **Model** chooses the installed SeedVR2 checkpoint. FP8 models use less VRAM; FP16 models require more memory.
+- **Temporal batch** controls how many frames are processed together. Larger values can improve temporal consistency but require more VRAM.
+- **Seed** makes a render repeatable when the source and other settings are unchanged.
+- **Color correction** controls how the restored colors are matched. Start with `none` when you want to preserve the source color character; `lab` is a general-purpose matching option.
 
-### Performance settings
+### 4. Tune performance and memory
 
-![Performance settings](<images/2026-08-29 19_51_43-Movies & TV.png>)
+![Performance settings](<images/ui-guide/performance-settings.png>)
 
-TensorRT uses **Optimized Fast** automatically. If optimized decoding fails, the application retries saved latents with the internal Stable decoder without repeating AI restoration.
+TensorRT uses **Optimized Fast** automatically. If optimized decoding fails, the saved latents can be decoded with the internal Stable fallback without repeating the AI restoration phase.
 
-- **Attention** offers `sageattn_2`, `sageattn_3`, `flash_attn_3`, `flash_attn_2`, and `sdpa`. Unsupported or unavailable accelerated backends fall back automatically. `sdpa` is the safest compatibility choice.
-- **Blocks to swap** trades speed for lower VRAM use. Fewer swapped blocks are faster; more swapped blocks reduce memory use.
-- **VAE tiling** reduces memory use for the VAE at a speed cost.
+- **Attention** offers the installed accelerated attention backends plus `sdpa`, the safest compatibility option.
+- **Blocks to swap** trades speed for VRAM. More swapping lowers memory use but can reduce speed.
+- **VAE tiling** lowers VAE memory use at a speed cost; leave it off unless VRAM is limiting the render.
 
-![Attention and memory options](<images/2026-08-29 19_51_53-Movies & TV.png>)
+![Attention and memory details](<images/ui-guide/attention-memory-settings.png>)
 
-### Post-processing
+### 5. Apply optional finishing
 
-![Post-processing settings](<images/2026-08-29 19_52_00-Movies & TV.png>)
+![Post-processing settings](<images/ui-guide/post-processing.png>)
 
-- **Extra sharpen** adds a post-render sharpening pass.
+Post-processing runs after restoration and can be adjusted separately:
+
+- **Extra sharpen** adds controlled edge definition.
 - **Film grain** adds adjustable grain intensity and saturation.
-- **Smooth TensorRT batch seams** applies color and noise matching at temporal batch boundaries.
-- **Skin finishing** is an optional non-generative finishing pass with controls for even skin tone, smoothing, redness, shine, blemish cleanup, mark preservation, and face-aware microtexture. Preview before using stronger settings.
+- **Smooth TensorRT batch seams** reduces visible color or noise changes at temporal batch boundaries.
 
-![Post-processing controls](<images/2026-08-29 19_52_10-Movies & TV.png>)
+![Skin finishing controls](<images/ui-guide/skin-finishing.png>)
 
-### Render workflow
+**Skin finishing** is a non-generative pass for existing skin pixels. It includes tone, smoothing, redness, shine, blemish cleanup, mark preservation, and face-aware microtexture controls. Preview before using stronger values; it cannot recreate missing identity detail.
+
+### 6. Recommended workflow
 
 1. Upload a source video.
-2. Choose a hardware preset or configure settings manually.
-3. Render a short preview using **Preview start** and **Length** to select the source segment.
-4. Inspect the result in Original, Restored, Compare, or Side by side mode.
-5. Render the full video when the preview looks correct.
-6. Use **Reprocess post only** to adjust post-processing without rerunning AI restoration.
-7. Use **Load selected output** to reopen a previous result from the output list.
+2. Choose a hardware preset or configure the settings manually.
+3. Render a short preview with **Preview start** and **Length**.
+4. Check the result in **Original**, **Restored**, **Compare**, and **Side by side** modes.
+5. Render the full video once the preview looks right.
+6. Use **Reprocess post only** to adjust finishing without rerunning restoration.
+7. Use **Load selected output** to reopen a previous result.
 
-Settings can be saved with **Save current settings**. The project folder contains rendered media, manifests, and logs.
+Use **Save current settings** to keep a configuration for later. Each job stores its media, manifest, and logs in the project’s `outputs\\` directory.

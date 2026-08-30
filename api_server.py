@@ -197,7 +197,7 @@ def _render_job(job_id: str, source: Path, job_dir: Path, values: dict[str, obje
         if job_type == "preview":
             start = min(max(float(values["preview_start"]), 0.0), max(info.duration - 0.1, 0.0))
             length = min(float(values["preview_seconds"]), max(info.duration - start, 0.1))
-            source_for_render = make_clip(source, job_dir / "source.mp4", start, length)
+            source_for_render = make_clip(source, job_dir / "preview-source.mp4", start, length)
             output = job_dir / "restored.mp4"
         else:
             source_for_render = source

@@ -149,8 +149,8 @@ def decode_postprocess_and_assemble(
     if not latent_files:
         raise MediaError(f"TensorRT render produced no VAE latents in {capture_dir}")
     profiles = _profile_latents(latent_files)
-    requested = str(getattr(settings, "decoder_mode", "stable")).lower()
-    requested = requested if requested in {"stable", "optimized", "optimized_fast"} else "stable"
+    requested = str(getattr(settings, "decoder_mode", "optimized_fast")).lower()
+    requested = requested if requested in {"stable", "optimized", "optimized_fast"} else "optimized_fast"
     record: dict[str, Any] = {
         "version": 1,
         "requested": requested,

@@ -2,6 +2,10 @@
 
 A local video restoration and upscale studio for SeedVR2 with TensorRT acceleration for faster VAE processing, a custom JavaScript interface, and FastAPI backend.
 
+## Screenshot
+
+![VRGDG SeedVR2 TensorRT Studio](images/seedvr2-studio-screenshot.png)
+
 ## Features
 
 - Original, Restored, Compare, and synchronized Side by side viewing modes.
@@ -11,7 +15,7 @@ A local video restoration and upscale studio for SeedVR2 with TensorRT accelerat
 - Preserve the original aspect ratio or center-crop to 16:9.
 - Resumable long-video rendering with automatic frame-aware chunk sizing, manual 30-second to 30-minute choices, retry from the last completed chunk, failure reasons, and saved logs.
 - Post-only reprocessing for sharpening, film grain, TensorRT seam smoothing, and optional skin finishing.
-- Stable and Optimized (Beta) TensorRT decoder modes. Optimized keeps one engine loaded while isolating each temporal batch in a fresh execution context, and automatically falls back to Stable from saved latents without rerunning AI restoration.
+- TensorRT decoding uses Optimized Fast automatically and falls back to the internal Stable decoder from saved latents if needed, without rerunning AI restoration.
 - Saved settings, previous-output loading, and an Open project folder action.
 
 ## Install and start
@@ -49,7 +53,7 @@ Each job is stored in its own directory under `outputs\`, including output media
 - Color correction is part of the main SeedVR2 render. `none` leaves colors unchanged; `lab` is the general-purpose matching mode.
 - SageAttention 2 is installed and preferred by default. Missing accelerated attention backends fall through to another available option and finally SDPA. See the [SageAttention guide](docs/SAGEATTENTION.md) for verification and repair steps.
 - Leave VAE tiling off unless VRAM is insufficient; it saves memory but reduces speed.
-- The TensorRT decoder defaults to **Stable**. Select **Optimized (Beta)** under Performance to test persistent decoding; every job records the requested and actual decoder in its manifests and log.
+- TensorRT uses **Optimized Fast** automatically; every job records the requested and actual decoder in its manifests and log.
 - Skin finishing is a non-generative post effect that enhances existing skin pixels; it cannot recreate missing facial identity detail.
 
 ## Project layout
@@ -65,8 +69,6 @@ Each job is stored in its own directory under `outputs\`, including output media
 ## License
 
 The Studio source is released under the MIT License. SeedVR2 and runtime components retain their upstream licenses; see [third-party notices](THIRD_PARTY_NOTICES.md).
-
-
 
 ## UI guide
 

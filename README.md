@@ -69,6 +69,7 @@ Each job is stored in its own directory under `outputs\`, including output media
 ## License
 
 The Studio source is released under the MIT License. SeedVR2 and runtime components retain their upstream licenses; see [third-party notices](THIRD_PARTY_NOTICES.md).
+
 ## UI guide
 
 The Studio’s layout is simple: configure a render in the left settings panel, then review the result in the viewer on the right. The guide below uses focused screenshots so each section can be understood without scanning the entire interface.

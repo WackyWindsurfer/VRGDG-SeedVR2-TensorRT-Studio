@@ -76,9 +76,9 @@ const duration = () => Math.min(Number.isFinite(before.duration) ? before.durati
 const update = () => { const d = duration(); $('#seek').max = d; $('#seek').value = before.currentTime || 0; $('#clock').textContent = `${format(before.currentTime)} / ${format(d)}`; const total = Math.max(0, Math.round(d * fps) - 1); $('#frame').max = total; $('#frame').value = Math.min(total, Math.round((before.currentTime || 0) * fps)); $('#frame-total').textContent = `/ ${total}`; };
 const seek = (value) => { const t = Math.max(0, Math.min(duration(), Number(value) || 0)); before.currentTime = t; after.currentTime = t; update(); };
 const stopPlaybackSync = () => { if (syncFrame) cancelAnimationFrame(syncFrame); syncFrame = 0; after.playbackRate = 1; };
-const keepPlaybackSynced = () => { if (before.paused) { stopPlaybackSync(); return; } const drift = after.currentTime - before.currentTime; const tolerance = Math.max(0.006, 0.35 / Math.max(fps, 1)); if (Math.abs(drift) > tolerance) after.currentTime = before.currentTime; update(); syncFrame = requestAnimationFrame(keepPlaybackSynced); };
+const syncTime = (source, target) => { if (!Number.isFinite(source.duration)) return; if (Math.abs(target.currentTime - source.currentTime) > 0.08) target.currentTime = Math.min(source.currentTime, target.duration || source.currentTime); };
 const pause = () => { before.pause(); after.pause(); stopPlaybackSync(); $('#play').textContent = '▶'; };
-const play = async () => { if (!before.src || !after.src) return; if (before.paused) { try { after.currentTime = before.currentTime; await Promise.all([before.play(), after.play()]); stopPlaybackSync(); syncFrame = requestAnimationFrame(keepPlaybackSynced); $('#play').textContent = 'Ⅱ'; } catch (_) { pause(); } } else pause(); };
+const play = async () => { if (!before.src || !after.src) return; if (before.paused) { try { after.currentTime = before.currentTime; await Promise.all([before.play(), after.play()]); $('#play').textContent = 'Ⅱ'; } catch (_) { pause(); } } else pause(); };
 const setWipe = (value) => { const p = Math.max(0, Math.min(100, Number(value) || 50)); $('#wipe').value = p; afterPane.style.setProperty('clip-path', `inset(0 0 0 ${p}%)`, inspector.classList.contains('mode-compare') ? 'important' : ''); divider.style.left = `${p}%`; $('#wipe-value').textContent = `${Math.round(p)}%`; };
 const applyTransform = () => { [before, after].forEach((video) => { video.style.transformOrigin = `${originX}% ${originY}%`; video.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`; }); $('#zoom-reset').textContent = `${Math.round(zoom * 100)}%`; };
 const resetZoom = () => { zoom = 1; panX = panY = 0; originX = originY = 50; applyTransform(); };
@@ -98,7 +98,7 @@ $('#wipe').addEventListener('input', (event) => setWipe(event.target.value));
 $('#zoom-reset').addEventListener('click', resetZoom);
 $('#fullscreen').addEventListener('click', () => (inspector.requestFullscreen || inspector.webkitRequestFullscreen)?.call(inspector));
 $('#exit-studio').addEventListener('click', async () => { if (!window.confirm('Exit SeedVR Studio? Any active render will stop and GPU/RAM will be released.')) return; $('#render-status').textContent = 'Shutting down…'; try { await fetch('/api/shutdown', {method:'POST', keepalive:true}); } catch (_) {} window.close(); });
-before.addEventListener('timeupdate', update);
+before.addEventListener('timeupdate', () => { syncTime(before, after); update(); });
 before.addEventListener('ended', pause); before.addEventListener('loadedmetadata', update); after.addEventListener('loadedmetadata', update);
 stage.addEventListener('wheel', (event) => { event.preventDefault(); const rect = stage.getBoundingClientRect(); originX = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100)); originY = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100)); zoom = Math.max(1, Math.min(8, zoom * (event.deltaY < 0 ? 1.2 : 1 / 1.2))); if (zoom === 1) panX = panY = 0; applyTransform(); }, { passive:false });
 stage.addEventListener('dblclick', resetZoom);
@@ -188,4 +188,3 @@ const loadConfig = async () => { try { const config = await (await fetch('/api/c
 
 
 $('#engine-help').addEventListener('click', () => $('#engine-help-dialog').showModal());
-

@@ -16,6 +16,13 @@ VRGDG SeedVR2 TensorRT Studio turns the SeedVR2 pipeline into a practical Window
 - **Non-destructive finishing** — reprocess sharpening, grain, seam smoothing, and optional skin finishing without rerunning restoration.
 - **Project-based history** — reopen previous outputs and keep media, manifests, and logs together under `outputs\`.
 
+## Before and after examples
+
+Each recording demonstrates the Studio's interactive comparison view, with the original footage on one side of the wipe and the restored result on the other.
+
+- [Watch comparison sample 1 (MP4, 25 MB)](videos/comparisons/comparison-sample-01.mp4)
+- [Watch comparison sample 2 (MP4, 13 MB)](videos/comparisons/comparison-sample-02.mp4)
+
 ## Requirements
 
 | | Recommended setup |

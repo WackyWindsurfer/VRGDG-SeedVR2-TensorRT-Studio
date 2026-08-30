@@ -20,8 +20,8 @@ VRGDG SeedVR2 TensorRT Studio turns the SeedVR2 pipeline into a practical Window
 
 Each recording demonstrates the Studio's interactive comparison view, with the original footage on one side of the wipe and the restored result on the other.
 
-- [Watch comparison sample 1 in your browser (MP4, 6.6 MB)](https://cdn.jsdelivr.net/gh/vrgamegirl19/VRGDG-SeedVR2-TensorRT-Studio@main/videos/comparisons/comparison-sample-01.mp4)
-- [Watch comparison sample 2 in your browser (MP4, 13 MB)](https://cdn.jsdelivr.net/gh/vrgamegirl19/VRGDG-SeedVR2-TensorRT-Studio@main/videos/comparisons/comparison-sample-02.mp4)
+- [Watch comparison sample 1 in your browser (MP4, 6.6 MB)](https://cdn.jsdelivr.net/gh/vrgamegirl19/VRGDG-SeedVR2-TensorRT-Studio@eebba66e6c73cb420f2f24a581961802b6177f65/videos/comparisons/comparison-sample-01.mp4)
+- [Watch comparison sample 2 in your browser (MP4, 13 MB)](https://cdn.jsdelivr.net/gh/vrgamegirl19/VRGDG-SeedVR2-TensorRT-Studio@eebba66e6c73cb420f2f24a581961802b6177f65/videos/comparisons/comparison-sample-02.mp4)
 
 ## Requirements
 

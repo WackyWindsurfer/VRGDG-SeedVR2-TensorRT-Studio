@@ -25,6 +25,7 @@ from seedvr_studio.cancellation import begin_render, cancel_current_render, canc
 from seedvr_studio.jobs import _settings
 from seedvr_studio.media import concat_videos, make_center_crop, make_clip, probe, trim_video_start
 from seedvr_studio.paths import ensure_workspace
+from seedvr_studio.updater import UpdateError, check_for_updates, launch_updater
 
 ROOT = Path(__file__).resolve().parent
 WEB = ROOT / "web"
@@ -388,6 +389,33 @@ def cancel_job(job_id: str) -> dict[str, object]:
     elapsed = time.time() - float(started_at) if started_at else 0.0
     _update(job_id, status="cancelled", message=message, elapsed_seconds=elapsed)
     return {"ok": True, "message": message}
+
+
+@app.get("/api/update/check")
+def update_check() -> dict[str, object]:
+    return check_for_updates(ROOT)
+
+
+@app.post("/api/update/apply")
+def apply_update() -> dict[str, object]:
+    with JOBS_LOCK:
+        active_render = any(job.get("status") in {"queued", "running"} for job in JOBS.values())
+    if active_render:
+        raise HTTPException(status_code=409, detail="Finish or stop the active render before updating.")
+    status = check_for_updates(ROOT)
+    if not status["supported"]:
+        raise HTTPException(status_code=409, detail=str(status["message"]))
+    if not status["update_available"]:
+        raise HTTPException(status_code=409, detail="SeedVR Studio is already up to date.")
+    try:
+        launch_updater(ROOT, os.getpid())
+    except UpdateError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    def stop_for_update() -> None:
+        time.sleep(0.75)
+        os.kill(os.getpid(), signal.SIGTERM)
+    Thread(target=stop_for_update, daemon=True).start()
+    return {"ok": True, "message": "Updater started. SeedVR Studio will close and restart automatically."}
 
 
 @app.post("/api/shutdown")

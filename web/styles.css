@@ -20,11 +20,11 @@ button,select,input { font:inherit; }
 #chunk-length-wrap { display:block; } #chunk-length-wrap[hidden] { display:none !important; }
 #chunk-length-wrap select { margin-top:5px; }
 .dialog-close { position:absolute; top:10px; right:12px; border:0; background:transparent; color:#aeb6c1; font-size:22px; cursor:pointer; }
-#chunk-help-dialog { width:min(520px, calc(100vw - 32px)); padding:25px 28px; border:1px solid #454c56; border-radius:10px; background:#171a20; color:var(--text); box-shadow:0 25px 80px #000b; }
-#chunk-help-dialog::backdrop { background:#0009; }
-#chunk-help-dialog form { position:relative; }
-#chunk-help-dialog h2 { margin:0 0 12px; font-size:18px; }
-#chunk-help-dialog p { color:#b8c0ca; font-size:13px; line-height:1.55; }
+#chunk-help-dialog,#update-dialog { width:min(520px, calc(100vw - 32px)); padding:25px 28px; border:1px solid #454c56; border-radius:10px; background:#171a20; color:var(--text); box-shadow:0 25px 80px #000b; }
+#chunk-help-dialog::backdrop,#update-dialog::backdrop { background:#0009; }
+#chunk-help-dialog form,#update-dialog form { position:relative; }
+#chunk-help-dialog h2,#update-dialog h2 { margin:0 0 12px; font-size:18px; }
+#chunk-help-dialog p,#update-dialog p { color:#b8c0ca; font-size:13px; line-height:1.55; }
 .seam-toggle { margin-top:14px; }
 .seam-warning { margin:8px 0 0; padding:8px 9px; border:1px solid #8b5139; border-radius:6px; background:#3a241c; color:#ffc09e; font-size:10px; line-height:1.45; }
 .settings-save { margin-top:15px; padding-top:12px; border-top:1px solid #292e36; }

@@ -187,3 +187,58 @@ const loadConfig = async () => { try { const config = await (await fetch('/api/c
 
 
 $('#engine-help').addEventListener('click', () => $('#engine-help-dialog').showModal());
+
+const updateDialog = document.createElement('dialog');
+updateDialog.id = 'update-dialog';
+updateDialog.innerHTML = '<form method="dialog"><button class="dialog-close" aria-label="Close">&times;</button><h2>SeedVR Studio updates</h2><p id="update-message">Checking for updates...</p><p id="update-version"></p><div class="render-actions"><button class="secondary-button" value="close">Close</button><button class="primary-button" id="apply-update" type="button" hidden>Update and restart</button></div></form>';
+document.body.append(updateDialog);
+const updateButton = document.createElement('button');
+updateButton.className = 'icon-button';
+updateButton.id = 'check-update';
+updateButton.title = 'Check for updates';
+updateButton.setAttribute('aria-label', 'Check for updates');
+updateButton.innerHTML = '&#8635;';
+$('#exit-studio').before(updateButton);
+const applyUpdateButton = $('#apply-update');
+const updateMessage = $('#update-message');
+const updateVersion = $('#update-version');
+
+updateButton.addEventListener('click', async () => {
+  updateButton.disabled = true;
+  updateMessage.textContent = 'Checking for updates...';
+  updateVersion.textContent = '';
+  applyUpdateButton.hidden = true;
+  updateDialog.showModal();
+  try {
+    const response = await fetch('/api/update/check', {cache:'no-store'});
+    const status = await response.json();
+    if (!response.ok) throw new Error(status.detail || 'Update check failed.');
+    updateMessage.textContent = status.message;
+    const versions = [];
+    if (status.current_version) versions.push(`Installed: ${status.current_version}`);
+    if (status.latest_version) versions.push(`Latest: ${status.latest_version}`);
+    updateVersion.textContent = versions.join(' / ');
+    applyUpdateButton.hidden = !(status.supported && status.update_available);
+  } catch (error) {
+    updateMessage.textContent = `Update check failed: ${error.message}`;
+  } finally {
+    updateButton.disabled = false;
+  }
+});
+
+applyUpdateButton.addEventListener('click', async () => {
+  if (!window.confirm('Update and restart SeedVR Studio now? Active renders must be stopped first.')) return;
+  applyUpdateButton.disabled = true;
+  updateMessage.textContent = 'Starting the safe updater...';
+  try {
+    const response = await fetch('/api/update/apply', {method:'POST'});
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || 'Update could not start.');
+    updateMessage.textContent = payload.message;
+    applyUpdateButton.hidden = true;
+    setTimeout(() => window.close(), 900);
+  } catch (error) {
+    updateMessage.textContent = `Update failed: ${error.message}`;
+    applyUpdateButton.disabled = false;
+  }
+});

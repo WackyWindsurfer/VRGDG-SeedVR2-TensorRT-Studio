@@ -1,176 +1,149 @@
 # VRGDG SeedVR2 TensorRT Studio
 
-A local video restoration and upscale studio for SeedVR2 with TensorRT acceleration for faster VAE processing, a custom JavaScript interface, and FastAPI backend.
+Local, GPU-accelerated video restoration and upscaling with SeedVR2, TensorRT, and a purpose-built browser interface.
 
-## Screenshot
+VRGDG SeedVR2 TensorRT Studio turns the SeedVR2 pipeline into a practical Windows workflow: load a video, test a short preview, compare the result frame by frame, and complete long renders with resumable checkpoints. Processing stays on your machine.
 
-![VRGDG SeedVR2 TensorRT Studio](images/seedvr2-studio-screenshot.png)
+## Highlights
 
-## Features
+- **Fast local restoration** — SeedVR2 inference with TensorRT-accelerated VAE decoding on supported NVIDIA RTX GPUs.
+- **Preview before committing** — render a short segment, then inspect Original, Restored, Compare, or Side by side views.
+- **Long-render recovery** — save completed chunks and continue from the first unfinished chunk after an interruption.
+- **Practical output controls** — choose resolution, aspect policy, model precision, temporal batch, seed, and color correction.
+- **Non-destructive finishing** — reprocess sharpening, grain, seam smoothing, and optional skin finishing without rerunning restoration.
+- **Project-based history** — reopen previous outputs and keep media, manifests, and logs together under `outputs\`.
 
-- Original, Restored, Compare, and synchronized Side by side viewing modes.
-- One shared play button, timeline scrubbing, frame stepping, fullscreen, zoom, pan, and wipe comparison.
-- Preview renders and full-video renders with elapsed time and ETA.
-- Output presets for original-size enhancement, 1K/1080p, 2K/1440p, and 4K/2160p.
-- Preserve the original aspect ratio or center-crop to 16:9.
-- Resumable long-video rendering with automatic frame-aware chunk sizing, manual 30-second to 30-minute choices, retry from the last completed chunk, failure reasons, and saved logs.
-- Post-only reprocessing for sharpening, film grain, TensorRT seam smoothing, and optional skin finishing.
-- TensorRT decoding uses Optimized Fast automatically and falls back to the internal Stable decoder from saved latents if needed, without rerunning AI restoration.
-- Saved settings, previous-output loading, and an Open project folder action.
+## Requirements
 
-## Install and start
+| | Recommended setup |
+|---|---|
+| Operating system | Windows 11 |
+| GPU | NVIDIA RTX with a current driver |
+| Storage | At least 35 GB free |
+| Network | Internet connection for the first installation |
+| Python | Installed automatically when needed; the project requires Python 3.12+ |
 
-This package targets Windows with an NVIDIA RTX GPU. Allow at least 35 GB of free disk space for dependencies, model weights, temporary ONNX exports, and locally built TensorRT engines.
+TensorRT engines are built locally for the installed GPU and runtime. Do not copy `.rtxplan` files between different GPU models or TensorRT versions.
 
-1. Double-click **Install SeedVR Studio.bat** once after downloading or cloning the repository.
-2. Leave it open while it installs Python/FFmpeg if needed, creates the private environment, installs CUDA PyTorch, SeedVR2, SageAttention 2, and TensorRT RTX, downloads the default model and VAE, and builds engines for your GPU.
+## Quick start
+
+1. Download or clone this repository.
+2. Double-click **Install SeedVR Studio.bat** and leave the window open until setup completes.
 3. Double-click **Launch SeedVR Studio Pro.bat**.
+4. Drop a source video into the Media panel.
+5. Render a short preview, inspect it, and then render the full video.
 
-The Pro launcher also detects an incomplete installation and opens the installer automatically. Downloads and TensorRT preparation are resumable. Detailed instructions and troubleshooting are in the [installation guide](docs/INSTALLATION.md).
+The installer prepares the private Python environment, FFmpeg, CUDA PyTorch, SeedVR2, SageAttention 2, TensorRT RTX, model weights, and GPU-specific engines. Downloads and engine preparation are resumable. The Pro launcher also detects an incomplete setup and opens the installer automatically.
 
-Model weights are stored locally in `models\` and are not committed to GitHub. Outputs, virtual environments, TensorRT engines/caches, and optional runtime files are also kept local.
-
-## Render engines
-
-- **SeedVR2 + TensorRT** — the recommended fast path. It runs SeedVR2 restoration while using TensorRT to accelerate VAE decoding. Fixed TensorRT engines currently support temporal batch sizes **5** and **21**.
-- **SeedVR2 (Legacy)** — the standard PyTorch SeedVR2 path. It supports more temporal batch sizes, but it can be substantially slower, especially for long videos.
-
-The batch-size dropdown automatically shows only values supported by the selected engine.
+For repair options and troubleshooting, see the [installation guide](docs/INSTALLATION.md).
 
 ## Workflow
 
-1. Start the Studio and drop an original video into the Media panel.
-2. Choose the render engine, output preset, crop policy, model, batch size, and settings.
-3. Render a short preview and inspect it in the viewer.
-4. Adjust settings as needed, then render the full video.
-5. Use **Reprocess post only** to change post-processing without rerunning the AI restoration.
+### 1. Load and inspect media
 
-Each job is stored in its own directory under `outputs\`, including output media and logs.
+Drop a video onto the Media panel or browse for a file. After a preview or full render completes, use the viewer tabs to switch between the source and restored result.
 
-## Settings notes
+| Load a source | Choose a viewer mode |
+|---|---|
+| ![Media panel with the original-video drop zone](images/ui-guide/controls/media-input.png) | ![Original, Restored, Compare, and Side by side viewer tabs](images/ui-guide/controls/viewer-modes.png) |
 
-- Temporal batches follow SeedVR2's `4n+1` rule. Larger batches can improve consistency but use more VRAM.
-- Color correction is part of the main SeedVR2 render. `none` leaves colors unchanged; `lab` is the general-purpose matching mode.
-- SageAttention 2 is installed and preferred by default. Missing accelerated attention backends fall through to another available option and finally SDPA. See the [SageAttention guide](docs/SAGEATTENTION.md) for verification and repair steps.
-- Leave VAE tiling off unless VRAM is insufficient; it saves memory but reduces speed.
-- TensorRT uses **Optimized Fast** automatically; every job records the requested and actual decoder in its manifests and log.
-- Skin finishing is a non-generative post effect that enhances existing skin pixels; it cannot recreate missing facial identity detail.
+- **Original** shows the uploaded source.
+- **Restored** shows the latest rendered result.
+- **Compare** overlays the restored video with a draggable wipe divider.
+- **Side by side** places both videos next to each other.
 
-## Project layout
+The shared viewer also supports timeline scrubbing, frame stepping, synchronized playback, fullscreen, zoom, and pan.
 
-- `web/` — JavaScript Studio interface.
-- `api_server.py` — FastAPI service.
-- `seedvr_studio/` — rendering and legacy Gradio integration.
-- `tools/` — TensorRT, assembly, post-processing, and diagnostics.
-- `tensorrt_backend/` — optional native TensorRT sources.
-- `scripts/` — one-click setup, launcher, model download, verification, and engine preparation scripts.
-- `vendor/seedvr2/` — the compatible Apache-2.0 SeedVR2 integration required by the Studio.
+### 2. Choose the render path and target
+
+Start with **SeedVR2 + TensorRT** for the accelerated path, then select a hardware preset and output target. Presets provide sensible starting values; **Custom / manual** leaves every setting under your control.
+
+| Render engine | Hardware preset | Output and aspect |
+|---|---|---|
+| ![SeedVR2 and TensorRT render-engine selector](images/ui-guide/controls/render-engine.png) | ![Hardware preset selector](images/ui-guide/controls/hardware-preset.png) | ![Output-size and crop-policy selectors](images/ui-guide/controls/output-and-crop.png) |
+
+Output presets include original-size enhancement, 1K/1080p, 2K/1440p, and 4K/2160p. Preserve the source aspect ratio or center-crop it to 16:9.
+
+### 3. Tune restoration
+
+Choose the model, temporal batch, seed, and color-matching strategy. FP8 models use less VRAM; FP16 models prioritize quality and require more memory. Temporal batches follow SeedVR2's `4n+1` rule, while the TensorRT path currently supports batches **5** and **21**.
+
+| Model, batch, and seed | Color correction | Resumable rendering |
+|---|---|---|
+| ![Model, temporal-batch, and seed controls](images/ui-guide/controls/model-batch-seed.png) | ![Color-correction selector and available modes](images/ui-guide/controls/color-correction.png) | ![Resumable long-video render and chunk-length controls](images/ui-guide/controls/resumable-render.png) |
+
+Color correction is applied during the main restoration. Use `none` to retain source colors; `lab` is a useful general-purpose matching mode. The other available modes are `wavelet`, `wavelet_adaptive`, `hsv`, and `adain`.
+
+For long videos, enable resumable rendering. **Auto** selects a chunk length from the duration, frame count, frame rate, and temporal batch; manual choices range from 30 seconds to 30 minutes. Completed chunks remain available if a job stops, and **Retry from last chunk** continues at the first unfinished section.
+
+### 4. Balance speed, memory, and finishing
+
+TensorRT uses **Optimized Fast** decoding automatically. If it fails, the Studio retries the saved latents with its internal Stable decoder, avoiding another restoration pass.
+
+| Performance | Post-processing | Skin finishing |
+|---|---|---|
+| ![Attention, block swapping, and VAE-tiling controls](images/ui-guide/controls/performance.png) | ![Sharpening, film grain, and seam-smoothing controls](images/ui-guide/controls/post-processing.png) | ![Optional skin-finishing controls](images/ui-guide/controls/skin-finishing.png) |
+
+- **Attention:** SageAttention 2 is the preferred default. Missing accelerated backends fall through to another installed option and finally SDPA.
+- **Blocks to swap:** higher values reduce VRAM demand but cost speed.
+- **VAE tiling:** reduces memory use at a speed cost; leave it off unless VRAM is insufficient.
+- **Smooth TensorRT batch seams:** matches color and noise around decoded batch boundaries and is enabled by default.
+- **Skin finishing:** uses a stabilized skin mask to refine existing pixels. It is non-generative and cannot recreate missing facial identity detail; preview stronger settings first.
+
+Post-processing can be changed later with **Reprocess post only**, without rerunning SeedVR2.
+
+### 5. Preview, render, and reopen results
+
+Set a short preview range, render it, and compare the result before starting the complete video. The status bar reports readiness, elapsed time, and ETA while a job runs.
+
+| Preview range | Render actions |
+|---|---|
+| ![Preview start and length fields](images/ui-guide/controls/preview-range.png) | ![Reprocess, preview, and full-render buttons](images/ui-guide/controls/render-actions.png) |
+
+| Render status | Previous results |
+|---|---|
+| ![Ready state, elapsed time, ETA, power, and fullscreen controls](images/ui-guide/controls/render-status.png) | ![Previous-results selector and load button](images/ui-guide/controls/previous-results.png) |
+
+Every job receives its own folder under `outputs\` with rendered media, manifests, and logs. Use **Load selected output** to reopen a result from the current workspace.
+
+## Render engines
+
+| Engine | Best for | Temporal batches | Notes |
+|---|---|---:|---|
+| **SeedVR2 + TensorRT** | Recommended accelerated workflow | 5, 21 | Uses TensorRT VAE decoding and automatic fallback from saved latents. |
+| **SeedVR2 (Legacy)** | Compatibility and additional batch choices | SeedVR2-compatible values | Standard PyTorch path; can be substantially slower on long videos. |
+
+The temporal-batch menu updates automatically when the render engine changes.
+
+## Settings that matter most
+
+- Begin with the hardware preset closest to your VRAM capacity.
+- Use a short representative preview before every long render.
+- Increase temporal batch only when the selected engine and available VRAM support it.
+- Use block swapping or VAE tiling when memory is the limiting factor, accepting the speed tradeoff.
+- Keep skin finishing subtle and confirm faces, freckles, moles, and other permanent marks in the preview.
+- Use post-only reprocessing for finishing changes; it is much faster than repeating restoration.
+
+## Files and local data
+
+Model weights live in `models\` and are not committed to GitHub. Outputs, virtual environments, TensorRT engines and caches, temporary ONNX exports, and optional runtime files also remain local.
+
+| Path | Purpose |
+|---|---|
+| `web/` | JavaScript Studio interface |
+| `api_server.py` | FastAPI service |
+| `seedvr_studio/` | Rendering pipeline and legacy Gradio integration |
+| `tools/` | TensorRT, assembly, post-processing, and diagnostic utilities |
+| `tensorrt_backend/` | Optional native TensorRT sources |
+| `scripts/` | Setup, launcher, download, verification, and engine-preparation scripts |
+| `vendor/seedvr2/` | Compatible Apache-2.0 SeedVR2 integration required by the Studio |
+
+## Documentation
+
+- [Installation and troubleshooting](docs/INSTALLATION.md)
+- [SageAttention setup and verification](docs/SAGEATTENTION.md)
+- [Third-party notices](THIRD_PARTY_NOTICES.md)
 
 ## License
 
-The Studio source is released under the MIT License. SeedVR2 and runtime components retain their upstream licenses; see [third-party notices](THIRD_PARTY_NOTICES.md).
-## UI guide
-
-The Studio follows a simple flow: configure the render in the left settings panel, render a preview, and inspect the result in the viewer. Each screenshot below focuses on one control group.
-
-### 1. Review the result
-
-![Viewer controls](<images/ui-guide/viewer-controls.png>)
-
-- **Original** shows the source video.
-- **Restored** shows the rendered result.
-- **Compare** provides a draggable wipe between source and result.
-- **Side by side** displays both videos together.
-- Use the timeline, frame field, navigation buttons, and play button to review frames. Zoom with the zoom control or mouse wheel; drag to pan and double-click to reset.
-
-### 2. Configure the render
-
-#### Render engine and hardware
-
-![Render engine and hardware preset](<images/ui-guide/sections/render-engine-preset.png>)
-
-Choose **SeedVR2 + TensorRT** for the accelerated pipeline or **SeedVR2 (Legacy)** for the standard path. **Hardware preset** provides a starting point for your VRAM class; choose **Custom / manual** when tuning settings yourself.
-
-#### Output size and aspect
-
-![Output size and aspect](<images/ui-guide/sections/output-size-aspect.png>)
-
-Choose **Original / enhancement only**, **1K / 1080p**, **2K / 1440p**, or **4K / 2160p**. The crop policy either preserves the source aspect ratio or center-crops to 16:9.
-
-#### Resumable long-video render
-
-![Resumable render](<images/ui-guide/sections/resumable-render.png>)
-
-Resumable rendering stores completed chunks so a long job can continue after an interruption. **Auto** selects a chunk size automatically.
-
-### 3. Choose the restoration inputs
-
-#### Model
-
-![Model selection](<images/ui-guide/sections/model.png>)
-
-Select the installed SeedVR2 checkpoint. FP8 models use less VRAM; FP16 models require more memory.
-
-#### Temporal batch and seed
-
-![Temporal batch and seed](<images/ui-guide/sections/temporal-batch-seed.png>)
-
-**Temporal batch** controls how many frames are processed together. Larger values can improve temporal consistency but require more VRAM. **Seed** makes a render repeatable when the source and other settings are unchanged.
-
-#### Color correction
-
-![Color correction](<images/ui-guide/sections/color-correction.png>)
-
-Color correction controls how restored colors are matched. Start with `none` to preserve the source color character; `lab` is a general-purpose matching option.
-
-### 4. Tune performance and memory
-
-#### TensorRT decoder
-
-![TensorRT decoder](<images/ui-guide/sections/tensorrt-decoder.png>)
-
-TensorRT uses **Optimized Fast** automatically. If optimized decoding fails, the saved latents can use the internal Stable fallback without repeating AI restoration.
-
-#### Attention
-
-![Attention settings](<images/ui-guide/sections/attention.png>)
-
-Choose an installed accelerated attention backend, or use `sdpa` as the safest compatibility option. Unsupported backends fall back automatically.
-
-#### Memory controls
-
-![Memory options](<images/ui-guide/sections/memory-options.png>)
-
-**Blocks to swap** trades speed for VRAM: more swapping lowers memory use but can reduce speed. **VAE tiling** also lowers memory use, with a speed cost.
-
-### 5. Apply optional finishing
-
-#### Sharpen and grain
-
-![Sharpen and film grain](<images/ui-guide/sections/sharpen-grain.png>)
-
-**Extra sharpen** adds controlled edge definition. **Film grain** adds adjustable grain intensity and saturation.
-
-#### Batch seam smoothing
-
-![Batch seam smoothing](<images/ui-guide/sections/batch-seam-smoothing.png>)
-
-**Smooth TensorRT batch seams** reduces visible color or noise changes at temporal batch boundaries.
-
-#### Skin finishing
-
-![Skin finishing](<images/ui-guide/sections/skin-finishing-options.png>)
-
-Skin finishing is a non-generative pass for existing skin pixels. It includes tone, smoothing, redness, shine, blemish cleanup, mark preservation, and face-aware microtexture controls. Preview before using stronger values; it cannot recreate missing identity detail.
-
-### 6. Recommended workflow
-
-1. Upload a source video.
-2. Choose a hardware preset or configure settings manually.
-3. Render a short preview with **Preview start** and **Length**.
-4. Check the result in **Original**, **Restored**, **Compare**, and **Side by side** modes.
-5. Render the full video once the preview looks right.
-6. Use **Reprocess post only** to adjust finishing without rerunning restoration.
-7. Use **Load selected output** to reopen a previous result.
-
-Use **Save current settings** to keep a configuration for later. Each job stores its media, manifest, and logs in the project’s `outputs\\` directory.
+The Studio source is released under the [MIT License](LICENSE). SeedVR2 and bundled runtime components retain their upstream licenses; see the [third-party notices](THIRD_PARTY_NOTICES.md).

@@ -69,72 +69,104 @@ Each job is stored in its own directory under `outputs\`, including output media
 ## License
 
 The Studio source is released under the MIT License. SeedVR2 and runtime components retain their upstream licenses; see [third-party notices](THIRD_PARTY_NOTICES.md).
-
 ## UI guide
 
-The Studio’s layout is simple: configure a render in the left settings panel, then review the result in the viewer on the right. The guide below uses focused screenshots so each section can be understood without scanning the entire interface.
+The Studio follows a simple flow: configure the render in the left settings panel, render a preview, and inspect the result in the viewer. Each screenshot below focuses on one control group.
 
 ### 1. Review the result
 
 ![Viewer controls](<images/ui-guide/viewer-controls.png>)
 
-The viewer is where you inspect the source and rendered output:
+- **Original** shows the source video.
+- **Restored** shows the rendered result.
+- **Compare** provides a draggable wipe between source and result.
+- **Side by side** displays both videos together.
+- Use the timeline, frame field, navigation buttons, and play button to review frames. Zoom with the zoom control or mouse wheel; drag to pan and double-click to reset.
 
-- **Original** — source video only.
-- **Restored** — rendered result only.
-- **Compare** — a draggable wipe between source and result.
-- **Side by side** — source and result displayed together.
-- Use the timeline, frame field, previous/next buttons, and play button to navigate. Zoom with the zoom control or mouse wheel; drag to pan and double-click to reset.
+### 2. Configure the render
 
-### 2. Choose the render path and output shape
+#### Render engine and hardware
 
-![Render settings](<images/ui-guide/render-settings.png>)
+![Render engine and hardware preset](<images/ui-guide/sections/render-engine-preset.png>)
 
-- **Render engine** selects the accelerated **SeedVR2 + TensorRT** path or **SeedVR2 (Legacy)**.
-- **Hardware preset** provides a starting point for the available VRAM. Use **Custom / manual** when tuning settings yourself.
-- **Output size** offers original enhancement, 1K / 1080p, 2K / 1440p, and 4K / 2160p targets.
-- **Crop / aspect policy** preserves the source aspect ratio or center-crops to 16:9.
-- **Resumable long-video render** stores completed chunks so a long job can continue after an interruption. **Auto** chooses a chunk size automatically.
+Choose **SeedVR2 + TensorRT** for the accelerated pipeline or **SeedVR2 (Legacy)** for the standard path. **Hardware preset** provides a starting point for your VRAM class; choose **Custom / manual** when tuning settings yourself.
 
-### 3. Select the model and temporal settings
+#### Output size and aspect
 
-![Output and model settings](<images/ui-guide/output-model-settings.png>)
+![Output size and aspect](<images/ui-guide/sections/output-size-aspect.png>)
 
-- **Model** chooses the installed SeedVR2 checkpoint. FP8 models use less VRAM; FP16 models require more memory.
-- **Temporal batch** controls how many frames are processed together. Larger values can improve temporal consistency but require more VRAM.
-- **Seed** makes a render repeatable when the source and other settings are unchanged.
-- **Color correction** controls how the restored colors are matched. Start with `none` when you want to preserve the source color character; `lab` is a general-purpose matching option.
+Choose **Original / enhancement only**, **1K / 1080p**, **2K / 1440p**, or **4K / 2160p**. The crop policy either preserves the source aspect ratio or center-crops to 16:9.
+
+#### Resumable long-video render
+
+![Resumable render](<images/ui-guide/sections/resumable-render.png>)
+
+Resumable rendering stores completed chunks so a long job can continue after an interruption. **Auto** selects a chunk size automatically.
+
+### 3. Choose the restoration inputs
+
+#### Model
+
+![Model selection](<images/ui-guide/sections/model.png>)
+
+Select the installed SeedVR2 checkpoint. FP8 models use less VRAM; FP16 models require more memory.
+
+#### Temporal batch and seed
+
+![Temporal batch and seed](<images/ui-guide/sections/temporal-batch-seed.png>)
+
+**Temporal batch** controls how many frames are processed together. Larger values can improve temporal consistency but require more VRAM. **Seed** makes a render repeatable when the source and other settings are unchanged.
+
+#### Color correction
+
+![Color correction](<images/ui-guide/sections/color-correction.png>)
+
+Color correction controls how restored colors are matched. Start with `none` to preserve the source color character; `lab` is a general-purpose matching option.
 
 ### 4. Tune performance and memory
 
-![Performance settings](<images/ui-guide/performance-settings.png>)
+#### TensorRT decoder
 
-TensorRT uses **Optimized Fast** automatically. If optimized decoding fails, the saved latents can be decoded with the internal Stable fallback without repeating the AI restoration phase.
+![TensorRT decoder](<images/ui-guide/sections/tensorrt-decoder.png>)
 
-- **Attention** offers the installed accelerated attention backends plus `sdpa`, the safest compatibility option.
-- **Blocks to swap** trades speed for VRAM. More swapping lowers memory use but can reduce speed.
-- **VAE tiling** lowers VAE memory use at a speed cost; leave it off unless VRAM is limiting the render.
+TensorRT uses **Optimized Fast** automatically. If optimized decoding fails, the saved latents can use the internal Stable fallback without repeating AI restoration.
 
-![Attention and memory details](<images/ui-guide/attention-memory-settings.png>)
+#### Attention
+
+![Attention settings](<images/ui-guide/sections/attention.png>)
+
+Choose an installed accelerated attention backend, or use `sdpa` as the safest compatibility option. Unsupported backends fall back automatically.
+
+#### Memory controls
+
+![Memory options](<images/ui-guide/sections/memory-options.png>)
+
+**Blocks to swap** trades speed for VRAM: more swapping lowers memory use but can reduce speed. **VAE tiling** also lowers memory use, with a speed cost.
 
 ### 5. Apply optional finishing
 
-![Post-processing settings](<images/ui-guide/post-processing.png>)
+#### Sharpen and grain
 
-Post-processing runs after restoration and can be adjusted separately:
+![Sharpen and film grain](<images/ui-guide/sections/sharpen-grain.png>)
 
-- **Extra sharpen** adds controlled edge definition.
-- **Film grain** adds adjustable grain intensity and saturation.
-- **Smooth TensorRT batch seams** reduces visible color or noise changes at temporal batch boundaries.
+**Extra sharpen** adds controlled edge definition. **Film grain** adds adjustable grain intensity and saturation.
 
-![Skin finishing controls](<images/ui-guide/skin-finishing.png>)
+#### Batch seam smoothing
 
-**Skin finishing** is a non-generative pass for existing skin pixels. It includes tone, smoothing, redness, shine, blemish cleanup, mark preservation, and face-aware microtexture controls. Preview before using stronger values; it cannot recreate missing identity detail.
+![Batch seam smoothing](<images/ui-guide/sections/batch-seam-smoothing.png>)
+
+**Smooth TensorRT batch seams** reduces visible color or noise changes at temporal batch boundaries.
+
+#### Skin finishing
+
+![Skin finishing](<images/ui-guide/sections/skin-finishing-options.png>)
+
+Skin finishing is a non-generative pass for existing skin pixels. It includes tone, smoothing, redness, shine, blemish cleanup, mark preservation, and face-aware microtexture controls. Preview before using stronger values; it cannot recreate missing identity detail.
 
 ### 6. Recommended workflow
 
 1. Upload a source video.
-2. Choose a hardware preset or configure the settings manually.
+2. Choose a hardware preset or configure settings manually.
 3. Render a short preview with **Preview start** and **Length**.
 4. Check the result in **Original**, **Restored**, **Compare**, and **Side by side** modes.
 5. Render the full video once the preview looks right.

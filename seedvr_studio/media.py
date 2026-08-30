@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import shutil
 import subprocess
 from dataclasses import dataclass
@@ -9,6 +10,24 @@ from pathlib import Path
 
 class MediaError(RuntimeError):
     pass
+
+
+class FrameRateRequiredError(MediaError):
+    pass
+
+
+def resolve_frame_rate(detected_fps: float, override_fps: float = 0.0) -> float:
+    """Return a usable source FPS or ask the UI to collect one from the user."""
+    for candidate in (detected_fps, override_fps):
+        try:
+            fps = float(candidate)
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(fps) and 1.0 <= fps <= 240.0:
+            return fps
+    raise FrameRateRequiredError(
+        "Frame rate could not be detected. Enter the source frame rate to continue."
+    )
 
 
 @dataclass(frozen=True)
@@ -50,10 +69,16 @@ def probe(path: str | Path) -> VideoInfo:
     ]
     payload = json.loads(run(command).stdout)
     stream = payload["streams"][0]
-    numerator, denominator = stream.get("avg_frame_rate", "0/1").split("/")
-    fps = float(numerator) / max(float(denominator), 1.0)
+    try:
+        numerator, denominator = stream.get("avg_frame_rate", "0/1").split("/")
+        fps = float(numerator) / max(float(denominator), 1.0)
+    except (AttributeError, TypeError, ValueError):
+        fps = 0.0
     duration = float(payload.get("format", {}).get("duration") or 0.0)
-    frames = int(stream.get("nb_frames") or round(duration * fps))
+    try:
+        frames = int(stream.get("nb_frames") or round(duration * fps))
+    except (TypeError, ValueError):
+        frames = round(duration * fps)
     return VideoInfo(duration, int(stream["width"]), int(stream["height"]), fps, frames)
 
 

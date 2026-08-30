@@ -12,7 +12,7 @@ from typing import Any, Callable
 import torch
 
 from .cancellation import cancellation_requested
-from .media import MediaError, probe
+from .media import MediaError, probe, resolve_frame_rate
 from .paths import ROOT, VENV_PYTHON
 from .persistent_decoder import run_persistent_decoder
 
@@ -214,12 +214,13 @@ def decode_postprocess_and_assemble(
         else:
             selected_files.append(decoded)
 
+    source_fps = resolve_frame_rate(getattr(settings, "source_fps", 0.0), probe(source).fps)
     target_width, target_height = _unpadded_output_size(
         source, settings.resolution, settings.max_resolution
     )
     assemble = [
         str(VENV_PYTHON), str(TRT_ASSEMBLER), *map(str, selected_files), "--output", str(output),
-        "--audio", str(source), "--seam-mode", settings.seam_mode, "--seam-frames", str(settings.seam_frames),
+        "--audio", str(source), "--fps", f"{source_fps:.9g}", "--seam-mode", settings.seam_mode, "--seam-frames", str(settings.seam_frames),
         "--target-width", str(target_width), "--target-height", str(target_height),
     ]
     result = subprocess.run(

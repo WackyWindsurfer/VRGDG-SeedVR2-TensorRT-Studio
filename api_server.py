@@ -5,6 +5,7 @@ This intentionally does not replace the Gradio app or render pipeline yet.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 from threading import Lock, Thread
 from uuid import uuid4
@@ -23,7 +24,7 @@ from fastapi.staticfiles import StaticFiles
 from seedvr_studio.backend import MODEL_FILES, backend_status, render, reprocess_tensorrt, tensorrt_status
 from seedvr_studio.cancellation import begin_render, cancel_current_render, cancellation_requested
 from seedvr_studio.jobs import _settings
-from seedvr_studio.media import concat_videos, make_center_crop, make_clip, probe, trim_video_start
+from seedvr_studio.media import FrameRateRequiredError, concat_videos, make_center_crop, make_clip, probe, resolve_frame_rate, trim_video_start
 from seedvr_studio.paths import ensure_workspace
 from seedvr_studio.updater import UpdateError, check_for_updates, launch_updater
 
@@ -34,6 +35,16 @@ OUTPUTS = ROOT / "outputs"
 app = FastAPI(title="SeedVR Studio API", version="0.1.0")
 JOBS: dict[str, dict[str, object]] = {}
 JOBS_LOCK = Lock()
+
+@app.middleware("http")
+async def disable_frontend_cache(request, call_next):
+    response = await call_next(request)
+    if request.url.path in {"/", "/index.html", "/app.js", "/styles.css"}:
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+    return response
+
+
 
 
 def _update(job_id: str, **values: object) -> None:
@@ -187,6 +198,8 @@ def _render_job(job_id: str, source: Path, job_dir: Path, values: dict[str, obje
         if crop_policy == "Center crop to 16:9":
             source = make_center_crop(source, job_dir / f"cropped{source.suffix or '.mp4'}")
         info = probe(source)
+        resolved_fps = resolve_frame_rate(info.fps, values.get("source_fps", 0.0))
+        info = replace(info, fps=resolved_fps, frames=info.frames or round(info.duration * resolved_fps))
         output_preset = str(values.get("output_preset", "1K / 1080p"))
         if output_preset in {"Original / enhancement only", "Original enhancement only"}:
             values["resolution"] = min(info.width, info.height)
@@ -203,7 +216,7 @@ def _render_job(job_id: str, source: Path, job_dir: Path, values: dict[str, obje
         else:
             source_for_render = source
             output = job_dir / f"{source.stem}-restored.mp4"
-        settings = _settings(values["resolution"], values["max_resolution"], values["batch_size"], values["seed"], values["model_label"], values["color_correction"], values["attention_mode"], values["blocks_to_swap"], values["vae_tiling"], values["stop_before_vae"], values["sharpen_enabled"], values["sharpen_strength"], values["grain_enabled"], values["grain_intensity"], values["grain_saturation"], values.get("microtexture_enabled", False), values.get("microtexture_strength", .60), values.get("skin_finishing_enabled", False), values.get("skin_evenness", .25), values.get("skin_smoothing", .20), values.get("skin_redness", .15), values.get("skin_shine", .15), values.get("blemish_mode", "off"), values.get("preserve_marks", True), values.get("seam_mode", "match"), values.get("seam_frames", 2), values.get("decoder_mode", "optimized_fast"))
+        settings = _settings(values["resolution"], values["max_resolution"], values["batch_size"], values["seed"], values["model_label"], values["color_correction"], values["attention_mode"], values["blocks_to_swap"], values["vae_tiling"], values["stop_before_vae"], values["sharpen_enabled"], values["sharpen_strength"], values["grain_enabled"], values["grain_intensity"], values["grain_saturation"], values.get("microtexture_enabled", False), values.get("microtexture_strength", .60), values.get("skin_finishing_enabled", False), values.get("skin_evenness", .25), values.get("skin_smoothing", .20), values.get("skin_redness", .15), values.get("skin_shine", .15), values.get("blemish_mode", "off"), values.get("preserve_marks", True), values.get("seam_mode", "match"), values.get("seam_frames", 2), values.get("decoder_mode", "optimized_fast"), info.fps)
         (job_dir / "job-manifest.json").write_text(json.dumps({
             "version": 1, "job_id": job_id, "job_type": job_type,
             "backend": str(values["backend_name"]), "source": str(source_for_render),
@@ -235,7 +248,7 @@ def _render_job(job_id: str, source: Path, job_dir: Path, values: dict[str, obje
         except OSError:
             pass
         final_status = "cancelled" if cancellation_requested() else "error"
-        _update(job_id, status=final_status, message=str(exc), elapsed_seconds=time.perf_counter() - started, error=str(exc), failure_reason=str(exc), log_file=str(log_path), resumable=_bool(values.get("chunked_render", False)))
+        _update(job_id, status=final_status, message=str(exc), elapsed_seconds=time.perf_counter() - started, error=str(exc), failure_reason=str(exc), failure_code="fps_required" if isinstance(exc, FrameRateRequiredError) else None, log_file=str(log_path), resumable=_bool(values.get("chunked_render", False)))
 
 
 def _reprocess_job(job_id: str, source_output: Path, values: dict[str, object]) -> None:
@@ -288,7 +301,7 @@ async def create_job(
     skin_finishing_enabled: str = Form("false"), skin_evenness: float = Form(.25), skin_smoothing: float = Form(.20),
     skin_redness: float = Form(.15), skin_shine: float = Form(.15), blemish_mode: str = Form("off"), preserve_marks: str = Form("true"),
     seam_mode: str = Form("match"), seam_frames: int = Form(2),
-    chunked_render: str = Form("false"), chunk_seconds: float = Form(0), decoder_mode: str = Form("optimized_fast"),
+    chunked_render: str = Form("false"), chunk_seconds: float = Form(0), decoder_mode: str = Form("optimized_fast"), source_fps: float = Form(0),
 ) -> dict[str, str]:
     ensure_workspace()
     job_id = uuid4().hex[:10]

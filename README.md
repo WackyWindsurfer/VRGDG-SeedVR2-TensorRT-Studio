@@ -2,6 +2,10 @@
 
 A local video restoration and upscale studio for SeedVR2 with TensorRT acceleration for faster VAE processing, a custom JavaScript interface, and FastAPI backend.
 
+## Screenshot
+
+![VRGDG SeedVR2 TensorRT Studio](images/seedvr2-studio-screenshot.png)
+
 ## Features
 
 - Original, Restored, Compare, and synchronized Side by side viewing modes.
@@ -65,5 +69,3 @@ Each job is stored in its own directory under `outputs\`, including output media
 ## License
 
 The Studio source is released under the MIT License. SeedVR2 and runtime components retain their upstream licenses; see [third-party notices](THIRD_PARTY_NOTICES.md).
-
-

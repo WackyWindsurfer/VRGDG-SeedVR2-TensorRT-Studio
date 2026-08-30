@@ -12,7 +12,7 @@ let currentOutputPath = '', currentOutputReprocessable = false;
 const SETTINGS_STORAGE_KEY = 'seedvr-studio-render-settings-v2';
 const LEGACY_SETTINGS_STORAGE_KEY = 'seedvr-studio-render-settings-v1';
 const SAVED_SETTING_IDS = [
-  'backend', 'decoder-mode', 'preset', 'output-preset', 'crop-policy', 'chunked-render', 'chunk-seconds',
+  'backend', 'preset', 'output-preset', 'crop-policy', 'chunked-render', 'chunk-seconds',
   'model', 'batch-size', 'seed', 'color', 'attention', 'blocks', 'vae-tiling',
   'sharpen', 'sharpen-strength', 'microtexture', 'microtexture-strength',
   'skin-finishing', 'skin-evenness', 'skin-smoothing', 'skin-redness', 'skin-shine', 'blemish-mode', 'preserve-marks',
@@ -38,7 +38,6 @@ const refreshSettingsUi = () => {
   $('#chunk-length-wrap').hidden = !$('#chunked-render').checked;
   $('#seam-warning').hidden = $('#seam-enabled').checked;
   $('#blocks-value').textContent = $('#blocks').value;
-  $('#decoder-mode-wrap').hidden = $('#backend').value !== 'SeedVR2 + TensorRT';
   const skinOff = !$('#skin-finishing').checked;
   $('#skin-options').classList.toggle('inactive', skinOff);
   $('#skin-options').querySelectorAll('input,select').forEach((control) => { control.disabled = skinOff; });
@@ -148,7 +147,7 @@ const renderForm = (type) => {
   data.append('model_label', formValue('model')); data.append('color_correction', formValue('color')); data.append('attention_mode', formValue('attention')); data.append('blocks_to_swap', formValue('blocks'));
   data.append('vae_tiling', formChecked('vae-tiling')); data.append('stop_before_vae', 'false'); data.append('sharpen_enabled', formChecked('sharpen')); data.append('sharpen_strength', formValue('sharpen-strength')); data.append('microtexture_enabled', $('#skin-finishing').checked ? formChecked('microtexture') : 'false'); data.append('microtexture_strength', formValue('microtexture-strength')); data.append('grain_enabled', formChecked('grain')); data.append('grain_intensity', formValue('grain-intensity')); data.append('grain_saturation', formValue('grain-saturation'));
   data.append('skin_finishing_enabled', formChecked('skin-finishing')); data.append('skin_evenness', formValue('skin-evenness')); data.append('skin_smoothing', formValue('skin-smoothing')); data.append('skin_redness', formValue('skin-redness')); data.append('skin_shine', formValue('skin-shine')); data.append('blemish_mode', formValue('blemish-mode')); data.append('preserve_marks', formChecked('preserve-marks'));
-  data.append('seam_mode', $('#seam-enabled').checked ? 'match' : 'off'); data.append('seam_frames', '2'); data.append('decoder_mode', formValue('decoder-mode'));
+  data.append('seam_mode', $('#seam-enabled').checked ? 'match' : 'off'); data.append('seam_frames', '2'); data.append('decoder_mode', 'optimized_fast');
   return data;
 };
 const setRenderBusy = (busy) => { ['render-preview','render-full','reprocess-post'].forEach((id) => { $( `#${id}` ).disabled = busy; }); $('#stop-render').hidden = !busy; if (busy) { $('#resume-render').hidden = true; lastFailedJob = null; } };
@@ -188,4 +187,3 @@ const loadConfig = async () => { try { const config = await (await fetch('/api/c
 
 
 $('#engine-help').addEventListener('click', () => $('#engine-help-dialog').showModal());
-

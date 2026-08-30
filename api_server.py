@@ -202,7 +202,7 @@ def _render_job(job_id: str, source: Path, job_dir: Path, values: dict[str, obje
         else:
             source_for_render = source
             output = job_dir / f"{source.stem}-restored.mp4"
-        settings = _settings(values["resolution"], values["max_resolution"], values["batch_size"], values["seed"], values["model_label"], values["color_correction"], values["attention_mode"], values["blocks_to_swap"], values["vae_tiling"], values["stop_before_vae"], values["sharpen_enabled"], values["sharpen_strength"], values["grain_enabled"], values["grain_intensity"], values["grain_saturation"], values.get("microtexture_enabled", False), values.get("microtexture_strength", .60), values.get("skin_finishing_enabled", False), values.get("skin_evenness", .25), values.get("skin_smoothing", .20), values.get("skin_redness", .15), values.get("skin_shine", .15), values.get("blemish_mode", "off"), values.get("preserve_marks", True), values.get("seam_mode", "match"), values.get("seam_frames", 2), values.get("decoder_mode", "stable"))
+        settings = _settings(values["resolution"], values["max_resolution"], values["batch_size"], values["seed"], values["model_label"], values["color_correction"], values["attention_mode"], values["blocks_to_swap"], values["vae_tiling"], values["stop_before_vae"], values["sharpen_enabled"], values["sharpen_strength"], values["grain_enabled"], values["grain_intensity"], values["grain_saturation"], values.get("microtexture_enabled", False), values.get("microtexture_strength", .60), values.get("skin_finishing_enabled", False), values.get("skin_evenness", .25), values.get("skin_smoothing", .20), values.get("skin_redness", .15), values.get("skin_shine", .15), values.get("blemish_mode", "off"), values.get("preserve_marks", True), values.get("seam_mode", "match"), values.get("seam_frames", 2), values.get("decoder_mode", "optimized_fast"))
         (job_dir / "job-manifest.json").write_text(json.dumps({
             "version": 1, "job_id": job_id, "job_type": job_type,
             "backend": str(values["backend_name"]), "source": str(source_for_render),
@@ -287,7 +287,7 @@ async def create_job(
     skin_finishing_enabled: str = Form("false"), skin_evenness: float = Form(.25), skin_smoothing: float = Form(.20),
     skin_redness: float = Form(.15), skin_shine: float = Form(.15), blemish_mode: str = Form("off"), preserve_marks: str = Form("true"),
     seam_mode: str = Form("match"), seam_frames: int = Form(2),
-    chunked_render: str = Form("false"), chunk_seconds: float = Form(0), decoder_mode: str = Form("stable"),
+    chunked_render: str = Form("false"), chunk_seconds: float = Form(0), decoder_mode: str = Form("optimized_fast"),
 ) -> dict[str, str]:
     ensure_workspace()
     job_id = uuid4().hex[:10]
@@ -421,8 +421,3 @@ def media(relative_path: str) -> FileResponse:
 
 
 app.mount("/", StaticFiles(directory=WEB, html=True), name="web")
-
-
-
-
-

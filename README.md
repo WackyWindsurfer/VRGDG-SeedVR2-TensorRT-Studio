@@ -9,6 +9,7 @@ VRGDG SeedVR2 TensorRT Studio turns the SeedVR2 pipeline into a practical Window
 ## Highlights
 
 - **Fast local restoration** — SeedVR2 inference with TensorRT-accelerated VAE decoding on supported NVIDIA RTX GPUs.
+- **Fast 2K upscaling** — As a real-world example, an 8-second clip took approximately 8 minutes to upscale to 2K on an NVIDIA RTX 5090 using the largest **7B Sharp FP16** model. Render times vary with source resolution, frame rate, settings, and available VRAM.
 - **Preview before committing** — render a short segment, then inspect Original, Restored, Compare, or Side by side views.
 - **Long-render recovery** — save completed chunks and continue from the first unfinished chunk after an interruption.
 - **Practical output controls** — choose resolution, aspect policy, model precision, temporal batch, seed, and color correction.

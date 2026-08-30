@@ -61,7 +61,7 @@ def check_for_updates(root: Path) -> dict[str, object]:
     if not (root / ".git").exists():
         return _status(
             supported=False,
-            message="Automatic updates require a Git-cloned installation. This copy was probably downloaded as a ZIP.",
+            message="One-time update setup is required for this ZIP installation. Copy bootstrap\\Update SeedVR Studio.bat beside the launcher, close Studio, and run it once.",
         )
     if not shutil.which("git"):
         return _status(supported=False, message="Git is not available in PATH, so this installation cannot update automatically.")

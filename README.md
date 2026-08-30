@@ -47,6 +47,21 @@ The installer prepares the private Python environment, FFmpeg, CUDA PyTorch, See
 
 For repair options and troubleshooting, see the [installation guide](docs/INSTALLATION.md).
 
+### Updating an existing installation
+
+Current users who do not yet see the **update button (↻)** can install it with one final manual update:
+
+1. Download [`Update SeedVR Studio.bat`](bootstrap/Update%20SeedVR%20Studio.bat).
+2. Place the downloaded BAT beside `Launch SeedVR Studio Pro.bat` in the existing Studio folder.
+3. Completely close SeedVR Studio.
+4. Double-click `Update SeedVR Studio.bat`.
+
+The one-time updater downloads the current application code, creates a backup under `outputs\`, and restarts Studio. It preserves the private `.venv`, downloaded models, GPU-specific TensorRT engines, rendered videos and logs under `outputs\`, browser-saved settings, and other untracked user files.
+
+For installations originally downloaded as a ZIP, it also converts the existing folder into a clean Git-backed `main` installation. Afterward, use the **↻ button** beside **Exit Studio** to check for updates, install changed application files, and restart automatically.
+
+The bootstrap and in-app updaters stop rather than overwrite tracked local code changes. If dependency repair fails, they restore the previous application code automatically.
+
 ## Workflow
 
 ### 1. Load and inspect media

@@ -4,7 +4,7 @@ $ErrorActionPreference = 'Stop'
 $StudioRoot = Split-Path -Parent $PSScriptRoot
 $StudioPython = Join-Path $StudioRoot '.venv\Scripts\python.exe'
 $StudioUrl = 'http://127.0.0.1:7870/'
-$BrowserUrl = $StudioUrl + '?ui=20260826-27'
+$BrowserUrl = $StudioUrl + '?ui=20260830-3'
 $HealthUrl = $StudioUrl + 'api/health'
 $ShutdownUrl = $StudioUrl + 'api/shutdown'
 $LogOut = Join-Path $StudioRoot 'outputs\js_server.log'

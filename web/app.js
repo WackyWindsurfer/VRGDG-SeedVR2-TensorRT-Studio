@@ -9,6 +9,7 @@ let fps = 30;
 let syncFrame = 0;
 let zoom = 1, panX = 0, panY = 0, originX = 50, originY = 50, drag = '', dragX = 0, dragY = 0, baseX = 0, baseY = 0;
 let currentOutputPath = '', currentOutputReprocessable = false;
+let selectedSourceFile = null;
 const SETTINGS_STORAGE_KEY = 'seedvr-studio-render-settings-v2';
 const LEGACY_SETTINGS_STORAGE_KEY = 'seedvr-studio-render-settings-v1';
 const SAVED_SETTING_IDS = [
@@ -86,7 +87,25 @@ const updateEmptyState = () => { const hasBefore = Boolean(before.currentSrc || 
 const loadVideo = (video, url) => { if (url) video.src = url; else video.removeAttribute('src'); video.load(); updateEmptyState(); update(); };
 const setFile = (video, file, nameTarget) => { if (!file) return; if (video === before) beginNewProject(file); loadVideo(video, URL.createObjectURL(file)); $(nameTarget).textContent = file.name; $('#media-info').textContent = `${file.name} · local file`; };
 
-$('#source-file').addEventListener('change', (event) => setFile(before, event.target.files[0], '#source-name'));
+const sourceInput = $('#source-file');
+const sourceDropzone = document.querySelector('label[for="source-file"]');
+const isVideoFile = (file) => Boolean(file && (file.type.startsWith('video/') || /\.(mp4|mov|mkv|avi|webm|m4v|mpeg|mpg)$/i.test(file.name)));
+const acceptSourceFile = (file) => {
+  if (!isVideoFile(file)) { $('#media-info').textContent = 'Please choose a supported video file.'; return; }
+  selectedSourceFile = file;
+  setFile(before, file, '#source-name');
+};
+sourceInput.addEventListener('change', (event) => acceptSourceFile(event.target.files[0]));
+['dragenter','dragover'].forEach((name) => sourceDropzone.addEventListener(name, (event) => {
+  event.preventDefault(); event.stopPropagation(); sourceDropzone.classList.add('drag-over');
+}));
+['dragleave','drop'].forEach((name) => sourceDropzone.addEventListener(name, (event) => {
+  event.preventDefault(); event.stopPropagation(); sourceDropzone.classList.remove('drag-over');
+}));
+sourceDropzone.addEventListener('drop', (event) => acceptSourceFile(event.dataTransfer?.files?.[0]));
+['dragover','drop'].forEach((name) => document.addEventListener(name, (event) => {
+  if (Array.from(event.dataTransfer?.types || []).includes('Files')) event.preventDefault();
+}));
 document.querySelectorAll('[data-mode]').forEach((button) => button.addEventListener('click', () => setMode(button.dataset.mode)));
 $('#seek').addEventListener('input', (event) => seek(event.target.value));
 $('#frame').addEventListener('change', (event) => seek((Number(event.target.value) || 0) / fps));
@@ -136,8 +155,8 @@ const startElapsed = () => { clearInterval(elapsedTimer); elapsedStarted = perfo
 const stopElapsed = (seconds) => { clearInterval(elapsedTimer); elapsedTimer = null; $('#elapsed-time').textContent = formatElapsed(seconds); $('#eta-time').textContent = '—'; };
 const formValue = (id) => document.getElementById(id).value;
 const formChecked = (id) => document.getElementById(id).checked ? 'true' : 'false';
-const renderForm = (type) => {
-  const file = $('#source-file').files[0];
+const renderForm = (type, sourceFps = 0) => {
+  const file = selectedSourceFile || $('#source-file').files[0];
   if (!file) throw new Error('Choose an original video first.');
   const data = new FormData();
   data.append('file', file); data.append('job_type', type); data.append('backend_name', formValue('backend'));
@@ -148,8 +167,19 @@ const renderForm = (type) => {
   data.append('vae_tiling', formChecked('vae-tiling')); data.append('stop_before_vae', 'false'); data.append('sharpen_enabled', formChecked('sharpen')); data.append('sharpen_strength', formValue('sharpen-strength')); data.append('microtexture_enabled', $('#skin-finishing').checked ? formChecked('microtexture') : 'false'); data.append('microtexture_strength', formValue('microtexture-strength')); data.append('grain_enabled', formChecked('grain')); data.append('grain_intensity', formValue('grain-intensity')); data.append('grain_saturation', formValue('grain-saturation'));
   data.append('skin_finishing_enabled', formChecked('skin-finishing')); data.append('skin_evenness', formValue('skin-evenness')); data.append('skin_smoothing', formValue('skin-smoothing')); data.append('skin_redness', formValue('skin-redness')); data.append('skin_shine', formValue('skin-shine')); data.append('blemish_mode', formValue('blemish-mode')); data.append('preserve_marks', formChecked('preserve-marks'));
   data.append('seam_mode', $('#seam-enabled').checked ? 'match' : 'off'); data.append('seam_frames', '2'); data.append('decoder_mode', 'optimized_fast');
+  data.append('source_fps', String(sourceFps || 0));
   return data;
 };
+const requestSourceFps = () => {
+  while (true) {
+    const value = window.prompt('Frame rate could not be detected. Please enter the source frame rate (for example 23.976, 29.97, 48, or 60):');
+    if (value === null) return null;
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 240) return parsed;
+    window.alert('Enter a frame rate between 1 and 240. Decimals are allowed.');
+  }
+};
+
 const setRenderBusy = (busy) => { ['render-preview','render-full','reprocess-post'].forEach((id) => { $( `#${id}` ).disabled = busy; }); $('#stop-render').hidden = !busy; if (busy) { $('#resume-render').hidden = true; lastFailedJob = null; } };
 const pollJob = async (id, token = projectToken) => {
   const job = await (await fetch(`/api/jobs/${id}`)).json();
@@ -158,10 +188,10 @@ const pollJob = async (id, token = projectToken) => {
   updateEta(window.__seedvrProgress);
   $('#render-status').textContent = `${job.message || job.status}${job.progress != null ? ` · ${Math.round(job.progress * 100)}%` : ''}`;
   if (job.status === 'complete') { stopElapsed(job.elapsed_seconds); setRenderBusy(false); activeJob = null; if (Number(job.fps) > 0) fps = Number(job.fps); if (job.original_url) loadVideo(before, job.original_url); if (job.restored_url) loadVideo(after, job.restored_url); currentOutputPath = job.output_relative || ''; currentOutputReprocessable = Boolean(job.reprocessable); $('#reprocess-post').hidden = !currentOutputReprocessable; $('#open-output-folder').hidden = !currentOutputPath; $('#media-info').textContent = job.job_type === 'reprocess' ? 'Post-only reprocess complete' : `${job.job_type} complete`; loadOutputs(); return; }
-  if (job.status === 'error' || job.status === 'cancelled') { stopElapsed(job.elapsed_seconds); setRenderBusy(false); activeJob = null; lastFailedJob = job.resumable ? job.id : null; $('#resume-render').hidden = !lastFailedJob; $('#render-status').textContent = `${job.failure_reason || job.error || job.message || job.status}${job.log_file ? ' · log saved' : ''}`; return; }
+  if (job.status === 'error' || job.status === 'cancelled') { stopElapsed(job.elapsed_seconds); setRenderBusy(false); activeJob = null; if (job.status === 'error' && job.failure_code === 'fps_required') { const enteredFps = requestSourceFps(); if (enteredFps !== null) startRender(job.job_type, enteredFps); else $('#render-status').textContent = 'Render cancelled · source frame rate is required'; return; } lastFailedJob = job.resumable ? job.id : null; $('#resume-render').hidden = !lastFailedJob; $('#render-status').textContent = `${job.failure_reason || job.error || job.message || job.status}${job.log_file ? ' · log saved' : ''}`; return; }
   setTimeout(() => pollJob(id, token).catch((error) => { if (token !== projectToken) return; setRenderBusy(false); $('#render-status').textContent = error.message; }), 800);
 };
-const startRender = async (type) => { try { setRenderBusy(true); $('#render-status').textContent = `Uploading ${type}…`; const response = await fetch('/api/jobs', { method:'POST', body:renderForm(type) }); if (!response.ok) throw new Error(await response.text()); activeJob = (await response.json()).id; startElapsed(); pollJob(activeJob, projectToken); } catch (error) { stopElapsed(0); setRenderBusy(false); $('#render-status').textContent = error.message; } };
+const startRender = async (type, sourceFps = 0) => { try { setRenderBusy(true); $('#render-status').textContent = `Uploading ${type}…`; const response = await fetch('/api/jobs', { method:'POST', body:renderForm(type, sourceFps) }); if (!response.ok) throw new Error(await response.text()); activeJob = (await response.json()).id; startElapsed(); pollJob(activeJob, projectToken); } catch (error) { stopElapsed(0); setRenderBusy(false); $('#render-status').textContent = error.message; } };
 const startReprocess = async () => { try { if (!currentOutputPath || !currentOutputReprocessable) throw new Error('Load a TensorRT result with saved decoded batches first.'); const data = new FormData(); data.append('output_path', currentOutputPath); data.append('seed', formValue('seed')); data.append('sharpen_enabled', formChecked('sharpen')); data.append('sharpen_strength', formValue('sharpen-strength')); data.append('microtexture_enabled', $('#skin-finishing').checked ? formChecked('microtexture') : 'false'); data.append('microtexture_strength', formValue('microtexture-strength')); data.append('skin_finishing_enabled', formChecked('skin-finishing')); data.append('skin_evenness', formValue('skin-evenness')); data.append('skin_smoothing', formValue('skin-smoothing')); data.append('skin_redness', formValue('skin-redness')); data.append('skin_shine', formValue('skin-shine')); data.append('blemish_mode', formValue('blemish-mode')); data.append('preserve_marks', formChecked('preserve-marks')); data.append('grain_enabled', formChecked('grain')); data.append('grain_intensity', formValue('grain-intensity')); data.append('grain_saturation', formValue('grain-saturation')); data.append('seam_mode', $('#seam-enabled').checked ? 'match' : 'off'); data.append('seam_frames', '2'); setRenderBusy(true); $('#render-status').textContent = 'Starting post-only reprocess…'; const response = await fetch('/api/reprocess', {method:'POST', body:data}); if (!response.ok) throw new Error(await response.text()); activeJob = (await response.json()).id; startElapsed(); pollJob(activeJob, projectToken); } catch (error) { stopElapsed(0); setRenderBusy(false); $('#render-status').textContent = error.message; } };
 $('#render-preview').addEventListener('click', () => startRender('preview')); $('#render-full').addEventListener('click', () => startRender('full'));
 $('#reprocess-post').addEventListener('click', startReprocess);

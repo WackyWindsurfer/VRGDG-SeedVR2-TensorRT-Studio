@@ -35,3 +35,4 @@ button,select,input { font:inherit; }
 .skin-master { margin-bottom:4px; }
 .feature-warning { margin:8px 0; padding:8px 9px; border:1px solid #8b5139; border-radius:6px; background:#3a241c; color:#ffc09e; font-size:10px; line-height:1.45; }
 
+.dropzone.drag-over { border-color:var(--accent); background:#161d27; box-shadow:0 0 0 2px rgba(255,154,61,.12); }

@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from .media import MediaError, probe
+from .media import MediaError, probe, resolve_frame_rate
 from .paths import MODELS, ROOT, SEEDVR_CLI, VENV_PYTHON
 
 
@@ -61,6 +61,7 @@ class RenderSettings:
     seam_mode: str = "match"
     seam_frames: int = 2
     decoder_mode: str = "stable"
+    source_fps: float = 0.0
 
 
 ProgressCallback = Callable[[float, str], None]
@@ -308,7 +309,7 @@ def reprocess_tensorrt(
     if progress_callback:
         progress_callback(0.8, "Applying seam treatment and assembling video")
     command = [str(VENV_PYTHON), str(TRT_ASSEMBLER), *map(str, selected_files),
-               "--output", str(output), "--audio", str(source), "--fps", str(probe(source).fps),
+               "--output", str(output), "--audio", str(source), "--fps", str(resolve_frame_rate(probe(source).fps)),
                "--seam-mode", seam_mode, "--seam-frames", str(seam_frames)]
     result = subprocess.run(command, cwd=ROOT, env=child_env, text=True,
                             encoding="utf-8", errors="replace", capture_output=True)

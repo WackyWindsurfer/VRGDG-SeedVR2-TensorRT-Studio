@@ -34,13 +34,37 @@ function Refresh-Path {
 function Find-Python312 {
     $py = Get-Command py.exe -ErrorAction SilentlyContinue
     if ($py) {
-        $path = & $py.Source -3.12 -c "import sys; print(sys.executable)" 2>$null
-        if ($LASTEXITCODE -eq 0 -and $path) { return ($path | Select-Object -Last 1).Trim() }
+        $previousErrorActionPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = 'SilentlyContinue'
+            $path = & $py.Source -3.12 -c "import sys; print(sys.executable)" 2>$null
+            $pyExitCode = $LASTEXITCODE
+        }
+        catch {
+            $path = $null
+            $pyExitCode = 1
+        }
+        finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
+        if ($pyExitCode -eq 0 -and $path) { return ($path | Select-Object -Last 1).Trim() }
     }
     $python = Get-Command python.exe -ErrorAction SilentlyContinue
     if ($python) {
-        $version = & $python.Source -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>$null
-        if ($LASTEXITCODE -eq 0 -and [version]$version -eq [version]'3.12') { return $python.Source }
+        $previousErrorActionPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = 'SilentlyContinue'
+            $version = & $python.Source -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>$null
+            $pythonExitCode = $LASTEXITCODE
+        }
+        catch {
+            $version = $null
+            $pythonExitCode = 1
+        }
+        finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
+        if ($pythonExitCode -eq 0 -and $version -and [version]$version -eq [version]'3.12') { return $python.Source }
     }
     $locations = @(
         (Join-Path $env:LocalAppData 'Programs\Python\Python312\python.exe'),

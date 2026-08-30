@@ -4,6 +4,8 @@ Local, GPU-accelerated video restoration and upscaling with SeedVR2, TensorRT, a
 
 VRGDG SeedVR2 TensorRT Studio turns the SeedVR2 pipeline into a practical Windows workflow: load a video, test a short preview, compare the result frame by frame, and complete long renders with resumable checkpoints. Processing stays on your machine.
 
+![VRGDG SeedVR2 TensorRT Studio full interface](images/seedvr2-studio-screenshot.png)
+
 ## Highlights
 
 - **Fast local restoration** — SeedVR2 inference with TensorRT-accelerated VAE decoding on supported NVIDIA RTX GPUs.

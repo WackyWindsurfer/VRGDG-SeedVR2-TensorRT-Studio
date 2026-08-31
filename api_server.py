@@ -163,6 +163,38 @@ def server_log(source: str = "stdout", lines: int = 300) -> dict[str, object]:
     return {"source": name, "exists": True, "size": path.stat().st_size, "lines": tail, "truncated": truncated}
 
 
+@app.get("/api/logs/job")
+def job_log(job_id: str = "", lines: int = 300) -> dict[str, object]:
+    """Tail a render job's render.log for the UI's log pane.
+
+    The job id is resolved through the in-memory registry first, then by
+    scanning outputs/js-*-<id> folders so logs of jobs from before a server
+    restart are still reachable.
+    """
+    count = max(1, min(lines, 2000))
+    job_dir = None
+    if job_id:
+        with JOBS_LOCK:
+            job = JOBS.get(job_id)
+        if job is not None:
+            job_dir = Path(str(job.get("_job_dir", "")))
+        elif OUTPUTS.is_dir():
+            for directory in sorted(OUTPUTS.iterdir(), key=lambda item: item.stat().st_mtime, reverse=True):
+                if directory.is_dir() and directory.name.endswith(f"-{job_id}"):
+                    job_dir = directory
+                    break
+    log_path = None
+    if job_dir is not None:
+        for candidate in (job_dir / "render.log", job_dir / f"reprocess-{job_id}.log"):
+            if candidate.is_file():
+                log_path = candidate
+                break
+    if log_path is None:
+        return {"source": job_id, "name": "", "exists": False, "size": 0, "lines": [], "truncated": False}
+    tail, truncated = _tail_lines(log_path, count)
+    return {"source": job_id, "name": log_path.parent.name, "exists": True, "size": log_path.stat().st_size, "lines": tail, "truncated": truncated}
+
+
 CHUNK_LENGTH_OPTIONS = (30, 60, 120, 180, 300, 600, 900, 1800)
 
 

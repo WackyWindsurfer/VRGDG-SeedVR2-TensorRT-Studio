@@ -57,6 +57,9 @@ button,select,input { font:inherit; }
 .log-source-button { padding:4px 10px; border:0; border-radius:4px; background:transparent; color:var(--muted); font-size:11px; font-weight:600; cursor:pointer; }
 .log-source-button:hover { color:#fff; }
 .log-source-button.active { background:#2a2f37; color:#fff; }
+.log-source-button span { color:var(--muted); font-weight:500; margin-left:5px; font-variant-numeric:tabular-nums; }
+.log-source-button.active span { color:#9fd8bd; }
+.log-source-button.job-tab { max-width:170px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 .log-spacer { flex:1; }
 .log-count { color:var(--muted); font-size:10px; font-variant-numeric:tabular-nums; }
 .log-toggle-button { padding:4px 10px; border:1px solid #4b535e; border-radius:5px; background:var(--panel-2); color:var(--text); font-size:11px; font-weight:600; cursor:pointer; }

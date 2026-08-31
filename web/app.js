@@ -309,6 +309,7 @@ const logSetBody = (payload) => {
     : 'No log file yet — it appears when the server starts.';
 };
 const logPoll = async () => {
+  if (logPane.classList.contains('hidden')) return;
   try {
     const response = await fetch(`/api/logs/server?source=${logSource}&lines=${LOG_LINES}`, {cache: 'no-store'});
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -346,8 +347,27 @@ logBody.addEventListener('scroll', () => {
   logContinue.hidden = !(logLive && !logNearBottom());
 });
 const logApplyPersistedSize = () => { try { const saved = Number(localStorage.getItem(LOG_SIZE_KEY)); if (Number.isFinite(saved) && saved > 0) setLogHeight(saved); } catch (_) {} };
+// Keep the fixed overlay aligned with the viewer column's content width so it
+// never covers the left settings rail (the spacer sits in that column's flow).
+const logSyncWidth = () => { if (logPane.classList.contains('hidden')) return; const rect = logSpacer.getBoundingClientRect(); logPane.style.left = `${Math.round(rect.left)}px`; logPane.style.right = `${Math.round(window.innerWidth - rect.right)}px`; };
+window.addEventListener('resize', logSyncWidth);
+// Show/hide toggle in the app bar (state persists).
+const logVisibleToggle = $('#log-visible-toggle');
+const LOG_VISIBLE_KEY = 'seedvr-studio-log-visible-v1';
+const setLogVisible = (visible) => {
+  logPane.classList.toggle('hidden', !visible);
+  logSpacer.classList.toggle('hidden', !visible);
+  logVisibleToggle.classList.toggle('active', visible);
+  logVisibleToggle.textContent = visible ? 'Hide log' : 'Show log';
+  logVisibleToggle.title = visible ? 'Hide the server log pane' : 'Show the server log pane';
+  try { localStorage.setItem(LOG_VISIBLE_KEY, visible ? '1' : '0'); } catch (_) {}
+  if (visible) { logSyncWidth(); logPoll(); }
+};
+logVisibleToggle.addEventListener('click', () => setLogVisible(logPane.classList.contains('hidden')));
 logApplyPersistedSize();
+try { if (localStorage.getItem(LOG_VISIBLE_KEY) === '0') setLogVisible(false); } catch (_) {}
 logRefreshButtonState();
+logSyncWidth();
 logPoll();
 setInterval(logPoll, LOG_POLL_MS);
 

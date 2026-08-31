@@ -9,7 +9,10 @@
 <body>
   <header class="appbar">
     <div class="brand"><span class="brand-mark">S</span><span>SeedVR <em>Studio</em></span><small>Beta</small></div>
-    <div class="connection"><span class="status-dot" id="api-dot"></span><span id="api-status">Connecting…</span></div>
+    <div class="appbar-right">
+      <button id="log-visible-toggle" class="appbar-log-toggle active" type="button" title="Hide the server log pane">Hide log</button>
+      <div class="connection"><span class="status-dot" id="api-dot"></span><span id="api-status">Connecting…</span></div>
+    </div>
   </header>
   <main class="workspace">
     <aside class="control-rail">

@@ -272,3 +272,103 @@ applyUpdateButton.addEventListener('click', async () => {
     applyUpdateButton.disabled = false;
   }
 });
+
+/* ── Server log pane ───────────────────────────────────────────── */
+const logPane = $('#log-pane');
+const logBody = $('#log-body');
+const logCount = $('#log-count');
+const logLiveButton = $('#log-live');
+const logContinue = $('#log-continue');
+const logSourceButtons = Array.from(document.querySelectorAll('.log-source-button'));
+const LOG_SIZE_KEY = 'seedvr-studio-log-size-v1';
+const LOG_LINES = 300;
+const LOG_POLL_MS = 1500;
+let logSource = 'stdout';
+let logLive = true;
+let logSize = null;
+
+const logNearBottom = () => logBody.scrollTop + logBody.clientHeight >= logBody.scrollHeight - 40;
+const logScrollBottom = (smooth = false) => { logBody.scrollTo({top: logBody.scrollHeight, behavior: smooth ? 'smooth' : 'auto'}); };
+const setLogHeight = (height) => { logSize = height; logPane.style.height = `${Math.round(height)}px`; };
+
+const logRefreshButtonState = () => {
+  logLiveButton.textContent = logLive ? 'Live' : 'Paused';
+  logLiveButton.classList.toggle('active', logLive);
+  logLiveButton.title = logLive ? 'Follow new output automatically' : 'Paused — new output will be collected until you resume';
+};
+const setLogCount = (payload) => {
+  if (!payload.exists) { logCount.textContent = 'no log yet'; return; }
+  logCount.textContent = payload.truncated ? `+${payload.lines.length} more lines` : `${payload.lines.length} lines shown`;
+};
+// Full-tail re-render. Called when the pane is empty (first paint / source switch)
+// or while following live output — exactly the last N lines the server tails.
+const logSetBody = (payload) => {
+  logBody.textContent = payload.exists
+    ? payload.lines.join('\n')
+    : 'No log file yet — it appears when the server starts.';
+};
+const logPoll = async () => {
+  try {
+    const response = await fetch(`/api/logs/server?source=${logSource}&lines=${LOG_LINES}`, {cache: 'no-store'});
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    setLogCount(payload);
+    const empty = logBody.textContent.trim() === '';
+    if (empty || logLive) {
+      logSetBody(payload);
+      if (logLive) logScrollBottom();
+    }
+    logContinue.hidden = !(logLive && !logNearBottom());
+  } catch (_) {
+    if (logBody.textContent.trim() === '') logBody.textContent = 'Server log unavailable.';
+  }
+};
+
+const switchLogSource = (source) => {
+  logSource = source;
+  logSourceButtons.forEach((button) => button.classList.toggle('active', button.dataset.logSource === source));
+  logBody.textContent = '';
+  logContinue.hidden = true;
+  logPoll();
+};
+
+logSourceButtons.forEach((button) => button.addEventListener('click', () => switchLogSource(button.dataset.logSource)));
+logLiveButton.addEventListener('click', () => {
+  logLive = !logLive;
+  if (logLive) { logScrollBottom(); logPoll(); }
+  logRefreshButtonState();
+});
+logContinue.addEventListener('click', () => { logScrollBottom(true); logPoll(); });
+logBody.addEventListener('scroll', () => {
+  logLive = logLive && logNearBottom();
+  logRefreshButtonState();
+  logContinue.hidden = !(logLive && !logNearBottom());
+});
+const logApplyPersistedSize = () => { try { const saved = Number(localStorage.getItem(LOG_SIZE_KEY)); if (Number.isFinite(saved) && saved > 0) setLogHeight(saved); } catch (_) {} };
+logApplyPersistedSize();
+logRefreshButtonState();
+logPoll();
+setInterval(logPoll, LOG_POLL_MS);
+
+const logResize = $('#log-resize');
+let logResizing = false;
+logResize.addEventListener('pointerdown', (event) => {
+  logResizing = true;
+  logResize.setPointerCapture?.(event.pointerId);
+  document.body.style.userSelect = 'none';
+  document.body.style.cursor = 'ns-resize';
+  event.preventDefault();
+});
+window.addEventListener('pointermove', (event) => {
+  if (!logResizing) return;
+  const rect = logPane.getBoundingClientRect();
+  const height = Math.min(window.innerHeight * 0.7, Math.max(64, rect.bottom - event.clientY));
+  setLogHeight(height);
+});
+window.addEventListener('pointerup', () => {
+  if (!logResizing) return;
+  logResizing = false;
+  document.body.style.userSelect = '';
+  document.body.style.cursor = '';
+  try { localStorage.setItem(LOG_SIZE_KEY, String(logSize)); } catch (_) {}
+});

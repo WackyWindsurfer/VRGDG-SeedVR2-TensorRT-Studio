@@ -351,9 +351,14 @@ logPoll();
 setInterval(logPoll, LOG_POLL_MS);
 
 const logResize = $('#log-resize');
-let logResizing = false;
+let logResizing = false, logResizeTop = 0;
 logResize.addEventListener('pointerdown', (event) => {
   logResizing = true;
+  // The pane's top edge is fixed by the content above it, so anchor on it once
+  // and drive the height from the cursor's distance below it. Reading the pane's
+  // live rect during the drag would feed the changing height back into the
+  // formula and make the pane jitter.
+  logResizeTop = logPane.getBoundingClientRect().top;
   logResize.setPointerCapture?.(event.pointerId);
   document.body.style.userSelect = 'none';
   document.body.style.cursor = 'ns-resize';
@@ -361,8 +366,7 @@ logResize.addEventListener('pointerdown', (event) => {
 });
 window.addEventListener('pointermove', (event) => {
   if (!logResizing) return;
-  const rect = logPane.getBoundingClientRect();
-  const height = Math.min(window.innerHeight * 0.7, Math.max(64, rect.bottom - event.clientY));
+  const height = Math.min(window.innerHeight * 0.7, Math.max(64, event.clientY - logResizeTop));
   setLogHeight(height);
 });
 window.addEventListener('pointerup', () => {

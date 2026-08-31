@@ -385,7 +385,7 @@ logResize.addEventListener('pointerdown', (event) => {
 });
 window.addEventListener('pointermove', (event) => {
   if (!logResizing) return;
-  const height = Math.min(window.innerHeight * 0.7, Math.max(64, window.innerHeight - event.clientY));
+  const height = Math.min(window.innerHeight * 0.6, Math.max(64, window.innerHeight - event.clientY));
   setLogHeight(height);
 });
 window.addEventListener('pointerup', () => {

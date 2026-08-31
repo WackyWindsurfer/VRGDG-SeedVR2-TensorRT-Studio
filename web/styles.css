@@ -42,7 +42,7 @@ button,select,input { font:inherit; }
    JS sizes the pane to the spacer's (viewer column's) width and lets the drag
    move the pane's TOP edge (bottom stays put). */
 .log-spacer { height:174px; }
-.log-pane { position:fixed; z-index:30; left:330px; right:30px; bottom:0; height:160px; min-height:64px; max-height:70vh; display:flex; flex-direction:column; overflow:hidden; border:1px solid var(--line); border-radius:9px; background:#08090b; box-shadow:0 -14px 40px #0009; }
+.log-pane { position:fixed; z-index:30; left:330px; right:30px; bottom:0; height:160px; min-height:64px; max-height:60vh; display:flex; flex-direction:column; overflow:hidden; border:1px solid var(--line); border-radius:9px; background:#08090b; box-shadow:0 -14px 40px #0009; }
 .log-pane.hidden,.log-spacer.hidden { display:none !important; }
 .appbar-right { display:flex; align-items:center; gap:14px; }
 .appbar-log-toggle { padding:7px 12px; border:1px solid #4b535e; border-radius:6px; background:var(--panel-2); color:var(--text); font-size:12px; font-weight:600; cursor:pointer; }

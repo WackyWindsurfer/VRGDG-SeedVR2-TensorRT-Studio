@@ -37,8 +37,11 @@ button,select,input { font:inherit; }
 
 .dropzone.drag-over { border-color:var(--accent); background:#161d27; box-shadow:0 0 0 2px rgba(255,154,61,.12); }
 
-/* Server log pane (bottom of the viewer column). */
-.log-pane { position:relative; margin-top:14px; height:160px; min-height:64px; max-height:70vh; display:flex; flex-direction:column; overflow:hidden; border:1px solid var(--line); border-radius:9px; background:#08090b; }
+/* Server log pane (bottom of the viewer column). The pane is a fixed overlay
+   glued to the bottom of the screen; an in-flow spacer holds its layout slot.
+   This lets the drag move the pane's TOP edge (bottom stays put). */
+.log-spacer { height:174px; }
+.log-pane { position:fixed; z-index:30; left:0; bottom:0; height:160px; min-height:64px; max-height:70vh; display:flex; flex-direction:column; overflow:hidden; border:1px solid var(--line); border-radius:9px; background:#08090b; box-shadow:0 -14px 40px #0009; }
 .log-resize { position:absolute; top:-6px; left:0; right:0; height:12px; cursor:ns-resize; z-index:4; }
 .log-resize::after { content:""; display:block; height:3px; margin-top:5px; border-radius:2px; background:#3a3f47; transition:background .15s ease; }
 .log-resize:hover::after { background:var(--accent); }

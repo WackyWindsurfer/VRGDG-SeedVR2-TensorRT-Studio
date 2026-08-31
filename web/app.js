@@ -309,9 +309,8 @@ const setLogCount = (payload) => {
 // Full-tail re-render. Called when the pane is empty (first paint / source switch)
 // or while following live output — exactly the last N lines the server tails.
 const logSetBody = (payload) => {
-  logBody.textContent = payload.exists
-    ? payload.lines.join('\n')
-    : 'No log file yet — it appears when the server starts.';
+  if (payload.exists) { logBody.textContent = payload.lines.join('\n'); return; }
+  logBody.textContent = logSource === 'job' ? 'Render queued — waiting for the first log line…' : 'No log file yet — it appears when the server starts.';
 };
 const logPoll = async () => {
   if (logPane.classList.contains('hidden')) return;
